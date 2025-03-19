@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:speak_english/discover_page.dart';
 
 class Home extends StatelessWidget {
   const Home({super.key});
@@ -31,12 +32,22 @@ class Home extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // Small image above the header text
-                    SizedBox(
-                      width: 40,
-                      height: 40,
-                      child: Image.asset(
-                        'assets/images/exit.png',
-                        fit: BoxFit.contain,
+                    GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => DiscoverPage(),
+                          ),
+                        );
+                      },
+                      child: SizedBox(
+                        width: 40,
+                        height: 40,
+                        child: Image.asset(
+                          'assets/images/exit.png',
+                          fit: BoxFit.contain,
+                        ),
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -65,8 +76,8 @@ class Home extends StatelessWidget {
                 ),
                 // Books stack image
                 SizedBox(
-                  width: 250,
-                  height: 250,
+                  width: 200,
+                  height: 200,
                   child: Image.asset(
                     'assets/images/book.png',
                     fit: BoxFit.contain,
@@ -87,8 +98,8 @@ class Home extends StatelessWidget {
                 children: [
                   _buildMenuItem(
                     context,
-                    'Hafalan',
-                    Colors.pink[100]!,
+                    // 'Hafalan',
+                    const Color(0xFFFFBE4DE)!,
                     'assets/images/hafalan.png',
                     // subtitle: "Hafalan",
                     onTap: () {
@@ -99,8 +110,8 @@ class Home extends StatelessWidget {
                   ),
                   _buildMenuItem(
                     context,
-                    'Grammar',
-                    Colors.purple[100]!,
+                    // 'Grammar',
+                    const Color(0xFFFEDDED)!,
                     'assets/images/grammar.png',
                     // subtitle: "Learning grammar",
                     onTap: () {
@@ -109,8 +120,8 @@ class Home extends StatelessWidget {
                   ),
                   _buildMenuItem(
                     context,
-                    'Tenses',
-                    Colors.blue[100]!,
+                    // 'Tenses',
+                    const Color(0xFFDAD6FB)!,
                     'assets/images/tenses.png',
                     // subtitle: "All tenses",
                     onTap: () {
@@ -119,8 +130,8 @@ class Home extends StatelessWidget {
                   ),
                   _buildMenuItem(
                     context,
-                    'Kosakata',
-                    Colors.green[100]!,
+                    // 'Kosakata',
+                    const Color(0xFFDBFFD9)!,
                     'assets/images/kosakata.png',
                     // subtitle: "Vocabulary",
                     onTap: () {
@@ -129,8 +140,8 @@ class Home extends StatelessWidget {
                   ),
                   _buildMenuItem(
                     context,
-                    'Ujian',
-                    Colors.yellow[100]!,
+                    // 'Ujian',
+                    const Color(0xFFFFFACF)!,
                     'assets/images/ujian.png',
                     // subtitle: "Test",
                     onTap: () {
@@ -139,8 +150,8 @@ class Home extends StatelessWidget {
                   ),
                   _buildMenuItem(
                     context,
-                    'Frasa dan Idiom',
-                    Colors.blue[100]!,
+                    // 'Frasa dan Idiom',
+                    const Color(0xFFDEF4FF)!,
                     'assets/images/frasa.png',
                     // subtitle: "Phrases and Idioms",
                     onTap: () {
@@ -158,7 +169,7 @@ class Home extends StatelessWidget {
 
   Widget _buildMenuItem(
     BuildContext context,
-    String title,
+    // String title,
     Color color,
     String imagePath, {
     String? subtitle,
@@ -169,17 +180,16 @@ class Home extends StatelessWidget {
       child: Container(
         decoration: BoxDecoration(
           color: color,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(0),
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
-              width: 167,
-              height: 182,
+              width: 135.5,
+              height: 135.5,
               decoration: BoxDecoration(
-                // color: Colors.white.withOpacity(0.8),
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(25),
               ),
               child: Padding(
                 padding: const EdgeInsets.all(8.0),
@@ -187,11 +197,11 @@ class Home extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 8),
-            Text(
-              title,
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-              textAlign: TextAlign.center,
-            ),
+            // Text(
+            //   // title,
+            //   style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            //   textAlign: TextAlign.center,
+            // ),
             if (subtitle != null)
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 4.0),

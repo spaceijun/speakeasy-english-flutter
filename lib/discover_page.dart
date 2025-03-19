@@ -7,14 +7,14 @@ class DiscoverPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color(0XFF8E62E9),
+      backgroundColor: Color.fromARGB(255, 91, 33, 198),
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
-              width: 403, // Lebar gambar dikecilkan
-              height: 508, // Tinggi gambar dikecilkan
+              width: 403,
+              height: 508,
               decoration: const BoxDecoration(
                 image: DecorationImage(
                   fit: BoxFit.contain,
@@ -36,11 +36,11 @@ class DiscoverPage extends StatelessWidget {
                 backgroundColor: const Color.fromARGB(255, 223, 177, 70),
                 foregroundColor: Color.fromARGB(255, 0, 0, 0),
                 padding: const EdgeInsets.symmetric(
-                  horizontal: 60,
+                  horizontal: 90,
                   vertical: 15,
                 ),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(25),
                 ),
               ),
               child: const Text(
