@@ -15,9 +15,24 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^5.0.0
+  flutter_launcher_icons: "^0.14.3"
+
 
 flutter:
   uses-material-design: true
   assets:
   - assets/images/
   - assets/images/book.png
+  - assets/images/hafalan/
+  - assets/images/hafalan/conversation.png
+  - assets/images/grammar/
+  - assets/images/detail-tenses.png
+  - assets/images/exam.png
+  - assets/images/detail-frasa.png
+  - assets/images/kosakata/
+
+
+flutter_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path: "assets/images/icon.jpg"

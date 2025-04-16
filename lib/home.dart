@@ -1,5 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:speak_english/discover_page.dart';
+import 'package:speak_english/exam.dart';
+import 'package:speak_english/frasa.dart';
+import 'package:speak_english/grammar.dart';
+import 'package:speak_english/hafalan.dart';
+import 'package:speak_english/kosakata.dart';
+import 'package:speak_english/tenses.dart';
 
 class Home extends StatelessWidget {
   const Home({super.key});
@@ -11,12 +17,12 @@ class Home extends StatelessWidget {
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
-          onPressed: () {
-            Navigator.pop(context);
-          },
-        ),
+        // leading: IconButton(
+        //   icon: const Icon(Icons.arrow_back, color: Colors.black),
+        //   onPressed: () {
+        //     Navigator.pop(context);
+        //   },
+        // ),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -105,7 +111,12 @@ class Home extends StatelessWidget {
                     onTap: () {
                       print('Hafalan tapped');
                       // Navigate to Hafalan screen
-                      // Navigator.push(context, MaterialPageRoute(builder: (context) => HafalanScreen()));
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => HafalanScreen(),
+                        ),
+                      );
                     },
                   ),
                   _buildMenuItem(
@@ -116,6 +127,12 @@ class Home extends StatelessWidget {
                     // subtitle: "Learning grammar",
                     onTap: () {
                       print('Grammar tapped');
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => GrammarScreen(),
+                        ),
+                      );
                     },
                   ),
                   _buildMenuItem(
@@ -126,6 +143,10 @@ class Home extends StatelessWidget {
                     // subtitle: "All tenses",
                     onTap: () {
                       print('Tenses tapped');
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => TensesScreen()),
+                      );
                     },
                   ),
                   _buildMenuItem(
@@ -136,6 +157,12 @@ class Home extends StatelessWidget {
                     // subtitle: "Vocabulary",
                     onTap: () {
                       print('Kosakata tapped');
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => KosakataScreen(),
+                        ),
+                      );
                     },
                   ),
                   _buildMenuItem(
@@ -146,6 +173,10 @@ class Home extends StatelessWidget {
                     // subtitle: "Test",
                     onTap: () {
                       print('Ujian tapped');
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => ExamScreen()),
+                      );
                     },
                   ),
                   _buildMenuItem(
@@ -156,6 +187,10 @@ class Home extends StatelessWidget {
                     // subtitle: "Phrases and Idioms",
                     onTap: () {
                       print('Frasa dan Idiom tapped');
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => FrasaScreen()),
+                      );
                     },
                   ),
                 ],

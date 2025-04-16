@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:speak_english/fs/home.dart';
+import 'package:speak_english/home.dart';
 
 class Register extends StatelessWidget {
   const Register({Key? key}) : super(key: key);

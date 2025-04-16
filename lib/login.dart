@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:speak_english/fs/home.dart';
-import 'package:speak_english/fs/register.dart';
+import 'package:speak_english/home.dart';
 import 'package:speak_english/register.dart';
 
 void main() {
