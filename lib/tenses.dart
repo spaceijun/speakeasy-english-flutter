@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:speak_english/detail/detail_tenses.dart';
 import 'package:speak_english/home.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 void main() {
-  runApp(Tenses()); // Nama kelas dengan huruf kapital
+  runApp(Tenses());
 }
 
 class Tenses extends StatelessWidget {
@@ -19,7 +22,98 @@ class Tenses extends StatelessWidget {
   }
 }
 
-class TensesScreen extends StatelessWidget {
+// Model class for our API data
+class TensesItem {
+  final int id;
+  final String name;
+  final String images;
+  final String description;
+
+  TensesItem({
+    required this.id,
+    required this.name,
+    required this.images,
+    required this.description,
+  });
+
+  factory TensesItem.fromJson(Map<String, dynamic> json) {
+    return TensesItem(
+      id: json['id'],
+      name: json['name'],
+      images: json['images'],
+      description: json['description'],
+    );
+  }
+}
+
+class TensesScreen extends StatefulWidget {
+  @override
+  _TensesScreenState createState() => _TensesScreenState();
+}
+
+class _TensesScreenState extends State<TensesScreen> {
+  List<TensesItem> _tensesItems = [];
+  bool _isLoading = true;
+  String _errorMessage = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchTensesData();
+  }
+
+  Future<void> _fetchTensesData() async {
+    try {
+      final response = await http.get(
+        Uri.parse('https://speakeasy-english.web.id/api/detail-tenses'),
+      );
+
+      if (response.statusCode == 200) {
+        // Print response body for debugging
+        print('API Response: ${response.body}');
+
+        // Parse the response
+        final jsonData = json.decode(response.body);
+
+        // Check if the response is a map (object) or list (array)
+        if (jsonData is Map<String, dynamic> && jsonData.containsKey('data')) {
+          // If it's a map with a 'data' key that contains our array
+          final List<dynamic> items = jsonData['data'];
+          setState(() {
+            _tensesItems =
+                items.map((item) => TensesItem.fromJson(item)).toList();
+            _isLoading = false;
+          });
+        } else if (jsonData is List) {
+          // If it's directly a list
+          setState(() {
+            _tensesItems =
+                jsonData.map((item) => TensesItem.fromJson(item)).toList();
+            _isLoading = false;
+          });
+        } else {
+          // If it's some other structure
+          setState(() {
+            _errorMessage = 'Unexpected data format from API';
+            _isLoading = false;
+          });
+        }
+      } else {
+        setState(() {
+          _errorMessage =
+              'Failed to load data: Server error ${response.statusCode}';
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _errorMessage = 'Failed to load data: $e';
+        _isLoading = false;
+      });
+      print('Error fetching data: $e');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -29,11 +123,9 @@ class TensesScreen extends StatelessWidget {
         leading: IconButton(
           icon: Icon(Icons.arrow_back, color: Colors.black),
           onPressed: () {
-            // Coba gunakan Navigator.pop terlebih dahulu
             if (Navigator.canPop(context)) {
               Navigator.pop(context);
             } else {
-              // Jika tidak bisa pop, maka navigate ke Home
               Navigator.pushReplacement(
                 context,
                 MaterialPageRoute(builder: (context) => Home()),
@@ -41,85 +133,66 @@ class TensesScreen extends StatelessWidget {
             }
           },
         ),
+        title: Text(
+          'Tenses',
+          style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+        ),
       ),
-      body: ListView(
-        children: [
-          ChapterItem(
-            number: 1,
-            title: 'Simple Present',
-            image: 'assets/images/detail-tenses.png',
-          ),
-          ChapterItem(
-            number: 2,
-            title: 'Present Contonous',
-            image: 'assets/images/detail-tenses.png',
-          ),
-          ChapterItem(
-            number: 3,
-            title: 'Present Perfect',
-            image: 'assets/images/detail-tenses.png',
-          ),
-          ChapterItem(
-            number: 4,
-            title: 'Present Perfect Continous',
-            image: 'assets/images/detail-tenses.png',
-          ),
-          ChapterItem(
-            number: 5,
-            title: 'Meminta Menunggu',
-            image: 'assets/images/detail-tenses.png',
-          ),
-          ChapterItem(
-            number: 6,
-            title: 'Meminta Tolong',
-            image: 'assets/images/detail-tenses.png',
-          ),
-          ChapterItem(
-            number: 7,
-            title: 'Mengajukan Seseorang',
-            image: 'assets/images/detail-tenses.png',
-          ),
-          ChapterItem(
-            number: 8,
-            title: 'Mengajukan Ya',
-            image: 'assets/images/detail-tenses.png',
-          ),
-          ChapterItem(
-            number: 9,
-            title: 'Saya Mengerti',
-            image: 'assets/images/detail-tenses.png',
-          ),
-          ChapterItem(
-            number: 10,
-            title: 'Sampai Jumpa',
-            image: 'assets/images/detail-tenses.png',
-          ),
-          ChapterItem(
-            number: 11,
-            title: 'Menyatakan Aktivitas',
-            image: 'assets/images/detail-tenses.png',
-          ),
-          ChapterItem(
-            number: 12,
-            title: 'Menyatakan Cinta',
-            image: 'assets/images/detail-tenses.png',
-          ),
-        ],
-      ),
+      body:
+          _isLoading
+              ? Center(child: CircularProgressIndicator())
+              : _errorMessage.isNotEmpty
+              ? Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(_errorMessage, textAlign: TextAlign.center),
+                      SizedBox(height: 16),
+                      ElevatedButton(
+                        onPressed: () {
+                          setState(() {
+                            _isLoading = true;
+                            _errorMessage = '';
+                          });
+                          _fetchTensesData();
+                        },
+                        child: Text('Retry'),
+                      ),
+                    ],
+                  ),
+                ),
+              )
+              : ListView.builder(
+                itemCount: _tensesItems.length,
+                itemBuilder: (context, index) {
+                  final item = _tensesItems[index];
+                  return ChapterItem(
+                    number: item.id,
+                    name: item.name,
+                    title: item.description,
+                    imageUrl:
+                        'https://speakeasy-english.web.id/assets/tenses/${item.images}',
+                  );
+                },
+              ),
     );
   }
 }
 
 class ChapterItem extends StatelessWidget {
   final int number;
+  final String name;
   final String title;
-  final String image;
+  final String imageUrl;
 
   const ChapterItem({
     Key? key,
     required this.number,
+    required this.name,
     required this.title,
-    required this.image,
+    required this.imageUrl,
   }) : super(key: key);
 
   @override
@@ -137,89 +210,45 @@ class ChapterItem extends StatelessWidget {
             color: const Color.fromARGB(255, 255, 254, 254).withOpacity(0.2),
             borderRadius: BorderRadius.circular(20),
           ),
-          child: Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Image.asset(
-              image,
-              fit: BoxFit.contain,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(20),
+            child: Image.network(
+              imageUrl,
+              fit: BoxFit.cover,
               errorBuilder: (context, error, stackTrace) {
-                // Fallback jika gambar tidak ditemukan
+                print('Image error: $error');
                 return Icon(Icons.image_not_supported, size: 20);
+              },
+              loadingBuilder: (context, child, loadingProgress) {
+                if (loadingProgress == null) return child;
+                return Center(
+                  child: CircularProgressIndicator(
+                    value:
+                        loadingProgress.expectedTotalBytes != null
+                            ? loadingProgress.cumulativeBytesLoaded /
+                                loadingProgress.expectedTotalBytes!
+                            : null,
+                  ),
+                );
               },
             ),
           ),
         ),
-        title: Text(
-          'Materi $number',
-          style: const TextStyle(fontWeight: FontWeight.bold),
-        ),
+        title: Text(name, style: const TextStyle(fontWeight: FontWeight.bold)),
         subtitle: Text(
           title,
           style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
         ),
         trailing: const Icon(Icons.chevron_right, color: Colors.grey),
         onTap: () {
-          // Navigasi ke detail chapter
+          // Navigate to detail chapter with the item data
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder:
-                  (context) =>
-                      ChapterDetailScreen(number: number, title: title),
+              builder: (context) => DetailTenses(id: number, title: title),
             ),
           );
         },
-      ),
-    );
-  }
-}
-
-class ChapterDetailScreen extends StatelessWidget {
-  final int number;
-  final String title;
-
-  const ChapterDetailScreen({
-    Key? key,
-    required this.number,
-    required this.title,
-  }) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: const Color.fromARGB(255, 255, 255, 255),
-        elevation: 1,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
-          onPressed: () {
-            Navigator.pop(context);
-          },
-        ),
-        title: Text(
-          'Materi $number',
-          style: const TextStyle(
-            color: Colors.black,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const SizedBox(height: 20),
-            Text(
-              title,
-              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 20),
-            const Text(
-              'Kontenya nanti ditampilkan disini pak dosen.',
-              style: TextStyle(fontSize: 16),
-            ),
-          ],
-        ),
       ),
     );
   }

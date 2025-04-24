@@ -1,17 +1,108 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:speak_english/api_service.dart';
 import 'package:speak_english/discover_page.dart';
 import 'package:speak_english/exam.dart';
 import 'package:speak_english/frasa.dart';
 import 'package:speak_english/grammar.dart';
 import 'package:speak_english/hafalan.dart';
 import 'package:speak_english/kosakata.dart';
+import 'package:speak_english/login.dart'; // Import halaman login
 import 'package:speak_english/tenses.dart';
 
 class Home extends StatelessWidget {
   const Home({super.key});
 
+  // Fungsi untuk menghapus session
+  Future<void> _clearLoginSession() async {
+    final prefs = await SharedPreferences.getInstance();
+
+    // Hapus semua data session
+    await prefs.setBool('isLoggedIn', false);
+    await prefs.remove('sessionExpireTime');
+    await prefs.remove('userToken');
+    await prefs.remove('userEmail');
+  }
+
   @override
   Widget build(BuildContext context) {
+    final ApiService apiService = ApiService();
+
+    // Fungsi untuk menangani proses logout
+    Future<void> handleLogout(BuildContext context) async {
+      try {
+        // Tampilkan indikator loading
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (BuildContext context) {
+            return const Center(child: CircularProgressIndicator());
+          },
+        );
+
+        // Panggil API logout
+        final bool logoutSuccess = await apiService.logout();
+
+        // Hapus data session dari SharedPreferences
+        await _clearLoginSession();
+
+        // Tutup dialog loading
+        Navigator.pop(context);
+
+        if (logoutSuccess) {
+          // Jika logout berhasil, navigasi ke LoginScreen
+          Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute(builder: (context) => const LoginScreen()),
+            (route) => false, // Hapus semua halaman dari stack
+          );
+        } else {
+          // Jika API logout gagal, tetap hapus session local dan navigasi ke login
+          // Ini untuk menghindari kondisi user terjebak di dalam aplikasi
+          Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute(builder: (context) => const LoginScreen()),
+            (route) => false,
+          );
+
+          // Tampilkan pesan error
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                'Gagal keluar dari server, tetapi sesi lokal telah dihapus.',
+              ),
+              backgroundColor: Colors.orange,
+              duration: Duration(seconds: 3),
+            ),
+          );
+        }
+      } catch (e) {
+        if (Navigator.canPop(context)) {
+          Navigator.pop(context);
+        }
+
+        // Hapus session local meskipun terjadi error
+        await _clearLoginSession();
+
+        // Navigasi ke login screen
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (context) => const LoginScreen()),
+          (route) => false,
+        );
+
+        // Tampilkan pesan error yang lebih spesifik
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Terjadi kesalahan: ${e.toString()}, sesi lokal telah dihapus.',
+            ),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+
+        print('Error saat logout: $e');
+      }
+    }
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -39,13 +130,38 @@ class Home extends StatelessWidget {
                   children: [
                     // Small image above the header text
                     GestureDetector(
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => DiscoverPage(),
-                          ),
+                      onTap: () async {
+                        final bool? confirm = await showDialog<bool>(
+                          context: context,
+                          builder:
+                              (context) => AlertDialog(
+                                title: const Text('Keluar'),
+                                content: const Text(
+                                  'Yakin mau keluar dari aplikasi?',
+                                ),
+                                actions: [
+                                  TextButton(
+                                    onPressed:
+                                        () => Navigator.of(context).pop(false),
+                                    child: const Text('Batal'),
+                                  ),
+                                  TextButton(
+                                    onPressed:
+                                        () => Navigator.of(context).pop(true),
+                                    child: const Text('Keluar'),
+                                    style: TextButton.styleFrom(
+                                      foregroundColor: Colors.red,
+                                    ),
+                                  ),
+                                ],
+                              ),
                         );
+
+                        // Jika user mengkonfirmasi logout
+                        if (confirm == true) {
+                          // Panggil fungsi handleLogout
+                          await handleLogout(context);
+                        }
                       },
                       child: SizedBox(
                         width: 40,

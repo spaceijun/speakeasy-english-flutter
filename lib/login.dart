@@ -1,27 +1,97 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:speak_english/api_service.dart';
 import 'package:speak_english/home.dart';
 import 'package:speak_english/register.dart';
 
-void main() {
-  runApp(const Login());
-}
-
-class Login extends StatelessWidget {
-  const Login({Key? key}) : super(key: key);
+class LoginScreen extends StatefulWidget {
+  const LoginScreen({Key? key}) : super(key: key);
 
   @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: 'Login UI',
-      theme: ThemeData(primarySwatch: Colors.purple, fontFamily: 'Roboto'),
-      home: const LoginScreen(),
-    );
-  }
+  State<LoginScreen> createState() => _LoginScreenState();
 }
 
-class LoginScreen extends StatelessWidget {
-  const LoginScreen({Key? key}) : super(key: key);
+class _LoginScreenState extends State<LoginScreen> {
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+  final ApiService _authService = ApiService();
+  bool _isLoading = false;
+  String _errorMessage = '';
+
+  // Fungsi untuk menyimpan session login dengan batas waktu
+  Future<void> _saveLoginSession({
+    int durationInDays = 7,
+    String? token,
+  }) async {
+    final prefs = await SharedPreferences.getInstance();
+
+    // Simpan status login
+    await prefs.setBool('isLoggedIn', true);
+
+    // Simpan token jika ada
+    if (token != null) {
+      await prefs.setString('userToken', token);
+    }
+
+    // Hitung waktu expirasi (default 7 hari)
+    final currentTime = DateTime.now();
+    final expireTime = currentTime.add(Duration(days: durationInDays));
+    await prefs.setInt('sessionExpireTime', expireTime.millisecondsSinceEpoch);
+
+    // Simpan email user untuk referensi
+    await prefs.setString('userEmail', _emailController.text);
+  }
+
+  Future<void> _login() async {
+    if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
+      setState(() {
+        _errorMessage = 'Email dan password tidak boleh kosong';
+      });
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+      _errorMessage = '';
+    });
+
+    try {
+      final response = await _authService.login(
+        _emailController.text,
+        _passwordController.text,
+      );
+
+      if (response['success'] == true) {
+        // Login berhasil, simpan session dengan durasi 7 hari
+        // Anda bisa mengambil token dari response jika API mengembalikan token
+        final token =
+            response['token']
+                as String?; // Sesuaikan dengan struktur response API Anda
+        await _saveLoginSession(durationInDays: 7, token: token);
+
+        if (mounted) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => const Home()),
+          );
+        }
+      } else {
+        // Login gagal
+        setState(() {
+          _errorMessage =
+              response['message'] ?? 'Login gagal. Silakan coba lagi.';
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _errorMessage = 'Terjadi kesalahan: $e';
+      });
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -49,7 +119,6 @@ class LoginScreen extends StatelessWidget {
                     Column(
                       children: [
                         const SizedBox(height: 10),
-                        // Girl reading
                         Image.asset(
                           'assets/images/bg_login.png',
                           width: 250,
@@ -108,12 +177,14 @@ class LoginScreen extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 50),
-                // Username field
-                const TextField(
-                  decoration: InputDecoration(
+                // Email field
+                TextField(
+                  controller: _emailController,
+                  keyboardType: TextInputType.emailAddress,
+                  decoration: const InputDecoration(
                     filled: true,
                     fillColor: Colors.white,
-                    hintText: 'Username',
+                    hintText: 'Email',
                     contentPadding: EdgeInsets.symmetric(
                       horizontal: 20,
                       vertical: 16,
@@ -126,9 +197,10 @@ class LoginScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 16),
                 // Password field
-                const TextField(
+                TextField(
+                  controller: _passwordController,
                   obscureText: true,
-                  decoration: InputDecoration(
+                  decoration: const InputDecoration(
                     filled: true,
                     fillColor: Colors.white,
                     hintText: 'Password',
@@ -142,17 +214,26 @@ class LoginScreen extends StatelessWidget {
                     ),
                   ),
                 ),
+                const SizedBox(height: 16),
+                // Error message
+                if (_errorMessage.isNotEmpty)
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: Colors.red.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Text(
+                      _errorMessage,
+                      style: const TextStyle(color: Colors.white),
+                    ),
+                  ),
                 const SizedBox(height: 24),
                 // Login button
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => const Home()),
-                      );
-                    },
+                    onPressed: _isLoading ? null : _login,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.amber,
                       foregroundColor: Colors.black,
@@ -162,13 +243,23 @@ class LoginScreen extends StatelessWidget {
                       ),
                       elevation: 0,
                     ),
-                    child: const Text(
-                      'Login',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
+                    child:
+                        _isLoading
+                            ? const SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(
+                                color: Colors.black,
+                                strokeWidth: 2,
+                              ),
+                            )
+                            : const Text(
+                              'Login',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                   ),
                 ),
                 const SizedBox(height: 16),
