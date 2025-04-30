@@ -283,10 +283,8 @@ class Home extends StatelessWidget {
                   ),
                   _buildMenuItem(
                     context,
-                    // 'Ujian',
                     const Color(0xFFFFFACF)!,
                     'assets/images/ujian.png',
-                    // subtitle: "Test",
                     onTap: () {
                       print('Ujian tapped');
                       Navigator.push(

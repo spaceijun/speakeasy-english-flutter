@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:speak_english/detail/detail_tugas_hafalan.dart';
 import 'package:speak_english/home.dart';
 
 void main() {
@@ -91,17 +92,18 @@ class ChapterItem extends StatelessWidget {
           ),
         ),
         title: Text(
-          'Exam $number',
+          'Hafalan $number',
           style: const TextStyle(fontWeight: FontWeight.bold),
         ),
-        // Subtitle removed as title is not needed
+        // Subtitle tidak dibutuhkan karena title sudah cukup
         trailing: const Icon(Icons.chevron_right, color: Colors.grey),
         onTap: () {
           // Navigasi ke detail chapter
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => ChapterDetailScreen(number: number),
+              builder:
+                  (context) => DetailTugasHafalan(number: number.toString()),
             ),
           );
         },
@@ -140,7 +142,7 @@ class ChapterDetailScreen extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             const SizedBox(height: 20),
-            // Title removed from here
+            // Title dihapus dari sini
             const SizedBox(height: 20),
             const Text(
               'Kontenya nanti ditampilkan disini pak dosen.',
