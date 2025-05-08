@@ -12,9 +12,8 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Indonesian Phrases',
+      title: 'Hafalan',
       theme: ThemeData(primarySwatch: Colors.blue, fontFamily: 'Roboto'),
-      // This route will allow you to test different hafalan IDs
       home: const HafalanSelectionScreen(),
       debugShowCheckedModeBanner: false,
     );
@@ -141,16 +140,16 @@ class _DetailHafalanState extends State<DetailHafalan> {
       );
 
       if (response.statusCode == 200) {
-        // Parse the JSON response
+        print('API Response: ${response.body}');
+        // JSON Response
         final dynamic jsonData = json.decode(response.body);
 
-        // Based on the example response format, we expect a structure with a "data" key
         if (jsonData is Map &&
             jsonData.containsKey('data') &&
             jsonData['data'] is List) {
           final List<dynamic> phrasesList = jsonData['data'];
 
-          // Filter phrases that match the current hafalan_id
+          // Filter berdasarkan hafalan_id
           return phrasesList
               .where((item) => item['hafalan_id'] == widget.hafalanId)
               .map((item) => PhraseModel.fromJson(item))
@@ -216,7 +215,7 @@ class _DetailHafalanState extends State<DetailHafalan> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   const Text(
-                    'No phrases available for this hafalan',
+                    'Data Detail Hafalan Belum Tersedia.',
                     style: TextStyle(fontSize: 16),
                   ),
                   const SizedBox(height: 16),

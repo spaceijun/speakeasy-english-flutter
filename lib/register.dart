@@ -61,14 +61,11 @@ class _RegisterState extends State<Register> {
         // Registrasi berhasil
         final Map<String, dynamic> data = jsonDecode(response.body);
         final String token = data['token'] ?? '';
-
-        // Simpan token untuk digunakan nanti
         final SharedPreferences prefs = await SharedPreferences.getInstance();
         await prefs.setString('auth_token', token);
 
         // Navigasi ke halaman home
         if (mounted) {
-          // Tampilkan snackbar berhasil
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('Registrasi berhasil!'),
@@ -155,8 +152,8 @@ class _RegisterState extends State<Register> {
                     filled: true,
                     fillColor: Colors.white,
                     contentPadding: EdgeInsets.symmetric(
-                      horizontal: 20,
-                      vertical: 16,
+                      horizontal: 10,
+                      vertical: 6,
                     ),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.all(Radius.circular(8)),
@@ -179,8 +176,8 @@ class _RegisterState extends State<Register> {
                     filled: true,
                     fillColor: Colors.white,
                     contentPadding: EdgeInsets.symmetric(
-                      horizontal: 20,
-                      vertical: 16,
+                      horizontal: 10,
+                      vertical: 6,
                     ),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.all(Radius.circular(8)),
@@ -251,8 +248,8 @@ class _RegisterState extends State<Register> {
                     filled: true,
                     fillColor: Colors.white,
                     contentPadding: EdgeInsets.symmetric(
-                      horizontal: 20,
-                      vertical: 16,
+                      horizontal: 10,
+                      vertical: 6,
                     ),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.all(Radius.circular(8)),
@@ -275,8 +272,8 @@ class _RegisterState extends State<Register> {
                     filled: true,
                     fillColor: Colors.white,
                     contentPadding: EdgeInsets.symmetric(
-                      horizontal: 20,
-                      vertical: 16,
+                      horizontal: 10,
+                      vertical: 6,
                     ),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.all(Radius.circular(8)),

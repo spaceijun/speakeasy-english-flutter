@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:speak_english/detail/detail_kosakata.dart';
 import 'package:speak_english/home.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 void main() {
   runApp(const Kosakata());
@@ -20,93 +23,109 @@ class Kosakata extends StatelessWidget {
 }
 
 class KosakataCategory {
-  final String title;
-  final String imagePath;
+  final int id;
+  final int categoryId;
+  final String name;
+  final String images;
+  final String description;
 
-  const KosakataCategory({required this.title, required this.imagePath});
+  KosakataCategory({
+    required this.id,
+    required this.categoryId,
+    required this.name,
+    required this.images,
+    required this.description,
+  });
+
+  factory KosakataCategory.fromJson(Map<String, dynamic> json) {
+    print('Processing kosakata item: $json');
+    String imageUrl = json['images'] ?? '';
+
+    // Sama seperti di Grammar, pastikan URL gambar lengkap
+    if (imageUrl.isNotEmpty &&
+        !imageUrl.startsWith('http://') &&
+        !imageUrl.startsWith('https://')) {
+      imageUrl = 'https://speakeasy-english.web.id/assets/kosakata/$imageUrl';
+    }
+
+    print('Image URL processed: $imageUrl');
+
+    return KosakataCategory(
+      id: json['id'] ?? 0,
+      categoryId: json['category_id'] ?? 0,
+      name: json['name'] ?? '',
+      images: imageUrl,
+      description: json['description'] ?? '',
+    );
+  }
 }
 
-class KosakataScreen extends StatelessWidget {
+class KosakataScreen extends StatefulWidget {
   const KosakataScreen({Key? key}) : super(key: key);
 
   @override
+  State<KosakataScreen> createState() => _KosakataScreenState();
+}
+
+class _KosakataScreenState extends State<KosakataScreen> {
+  late Future<List<KosakataCategory>> _kosakataFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _kosakataFuture = fetchKosakataCategories();
+  }
+
+  Future<List<KosakataCategory>> fetchKosakataCategories() async {
+    try {
+      final response = await http.get(
+        Uri.parse('https://speakeasy-english.web.id/api/kosakatas'),
+        headers: {'Accept': 'application/json'},
+      );
+
+      if (response.statusCode == 200) {
+        print('API Response: ${response.body}');
+
+        final dynamic jsonData = json.decode(response.body);
+
+        // Logika yang sama dengan Grammar untuk menangani berbagai format response
+        if (jsonData is List) {
+          return jsonData
+              .map((item) => KosakataCategory.fromJson(item))
+              .toList();
+        } else if (jsonData is Map) {
+          if (jsonData.containsKey('data') && jsonData['data'] is List) {
+            final List<dynamic> kosakataList = jsonData['data'];
+            return kosakataList
+                .map((item) => KosakataCategory.fromJson(item))
+                .toList();
+          } else {
+            // Mencari list data di response
+            for (var key in jsonData.keys) {
+              if (jsonData[key] is List) {
+                final List<dynamic> kosakataList = jsonData[key];
+                return kosakataList
+                    .map((item) => KosakataCategory.fromJson(item))
+                    .toList();
+              }
+            }
+          }
+        }
+
+        return [];
+      } else {
+        throw Exception(
+          'Failed to load kosakata categories: ${response.statusCode}',
+        );
+      }
+    } catch (e) {
+      print('Error fetching kosakata categories: $e');
+      throw Exception('Failed to load kosakata categories: $e');
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final List<KosakataCategory> categories = [
-      const KosakataCategory(
-        title: 'Pronoun',
-        imagePath: 'assets/images/kosakata/boy.png',
-      ),
-      const KosakataCategory(
-        title: 'Family',
-        imagePath: 'assets/images/kosakata/family.png',
-      ),
-      const KosakataCategory(
-        title: 'Personality',
-        imagePath: 'assets/images/kosakata/user.png',
-      ),
-      const KosakataCategory(
-        title: 'Country',
-        imagePath: 'assets/images/kosakata/indonesia.png',
-      ),
-      const KosakataCategory(
-        title: 'Body Shape',
-        imagePath: 'assets/images/kosakata/man.png',
-      ),
-      const KosakataCategory(
-        title: 'Housekeeping',
-        imagePath: 'assets/images/kosakata/household.png',
-      ),
-      const KosakataCategory(
-        title: 'Home Section',
-        imagePath: 'assets/images/kosakata/house.png',
-      ),
-      const KosakataCategory(
-        title: 'School Major',
-        imagePath: 'assets/images/kosakata/graduating-student.png',
-      ),
-      const KosakataCategory(
-        title: 'Shopping',
-        imagePath: 'assets/images/kosakata/trolley.png',
-      ),
-      const KosakataCategory(
-        title: 'Transportation',
-        imagePath: 'assets/images/kosakata/vehicles.png',
-      ),
-      const KosakataCategory(
-        title: 'Season',
-        imagePath: 'assets/images/kosakata/tree.png',
-      ),
-      const KosakataCategory(
-        title: 'Weather',
-        imagePath: 'assets/images/kosakata/weather.png',
-      ),
-      const KosakataCategory(
-        title: 'Nature',
-        imagePath: 'assets/images/kosakata/lake.png',
-      ),
-      const KosakataCategory(
-        title: 'Body Move',
-        imagePath: 'assets/images/kosakata/woman.png',
-      ),
-      const KosakataCategory(
-        title: 'Education',
-        imagePath: 'assets/images/kosakata/education.png',
-      ),
-      const KosakataCategory(
-        title: 'Propotion Of Place',
-        imagePath: 'assets/images/kosakata/market-positioning.png',
-      ),
-      const KosakataCategory(
-        title: 'Preposition Of Manner',
-        imagePath: 'assets/images/kosakata/map.png',
-      ),
-
-      const KosakataCategory(
-        title: 'Conjunction',
-        imagePath: 'assets/images/kosakata/bookk.png',
-      ),
-    ];
-
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -125,21 +144,55 @@ class KosakataScreen extends StatelessWidget {
             }
           },
         ),
+        title: const Text('Kosakata', style: TextStyle(color: Colors.black)),
       ),
-      body: GridView.builder(
-        padding: const EdgeInsets.all(16),
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 3,
-          mainAxisSpacing: 16,
-          crossAxisSpacing: 16,
-          childAspectRatio: 0.8,
-        ),
-        itemCount: categories.length,
-        itemBuilder: (context, index) {
-          return CategoryItem(
-            title: categories[index].title,
-            imagePath: categories[index].imagePath,
-          );
+      body: FutureBuilder<List<KosakataCategory>>(
+        future: _kosakataFuture,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          } else if (snapshot.hasError) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Text(
+                      'Error: ${snapshot.error}',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(color: Colors.red),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: () {
+                      setState(() {
+                        _kosakataFuture = fetchKosakataCategories();
+                      });
+                    },
+                    child: const Text('Retry'),
+                  ),
+                ],
+              ),
+            );
+          } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+            return const Center(child: Text('No data available'));
+          } else {
+            return GridView.builder(
+              padding: const EdgeInsets.all(16),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 3,
+                mainAxisSpacing: 16,
+                crossAxisSpacing: 16,
+                childAspectRatio: 0.8,
+              ),
+              itemCount: snapshot.data!.length,
+              itemBuilder: (context, index) {
+                return CategoryItem(category: snapshot.data![index]);
+              },
+            );
+          }
         },
       ),
     );
@@ -147,41 +200,86 @@ class KosakataScreen extends StatelessWidget {
 }
 
 class CategoryItem extends StatelessWidget {
-  final String title;
-  final String imagePath;
+  final KosakataCategory category;
 
-  const CategoryItem({Key? key, required this.title, required this.imagePath})
-    : super(key: key);
+  const CategoryItem({Key? key, required this.category}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Expanded(
-          child: Container(
-            decoration: BoxDecoration(
-              color: const Color(0xFFDBFFD9),
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Center(
-              // Using Image.asset to load the image from assets
-              child: Image.asset(
-                imagePath,
-                width: 48,
-                height: 48,
-                fit: BoxFit.contain,
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder:
+                (context) => DetailKosakata(
+                  categoryTitle: category.name,
+                  categoryImage: category.images,
+                  categoryId: category.id,
+                ),
+          ),
+        );
+      },
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Expanded(
+            child: Container(
+              decoration: BoxDecoration(
+                color: const Color(0xFFDBFFD9),
+                borderRadius: BorderRadius.circular(16),
+                // Menambahkan shadow seperti di Grammar
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Center(
+                // Menambahkan loading dan error handling seperti di Grammar
+                child: Image.network(
+                  category.images,
+                  width: 48,
+                  height: 48,
+                  fit: BoxFit.contain,
+                  errorBuilder: (context, error, stackTrace) {
+                    print(
+                      'Error loading image from ${category.images}: $error',
+                    );
+                    return const Icon(
+                      Icons.image_not_supported,
+                      size: 48,
+                      color: Colors.red,
+                    );
+                  },
+                  loadingBuilder: (context, child, loadingProgress) {
+                    if (loadingProgress == null) return child;
+                    return Center(
+                      child: CircularProgressIndicator(
+                        value:
+                            loadingProgress.expectedTotalBytes != null
+                                ? loadingProgress.cumulativeBytesLoaded /
+                                    loadingProgress.expectedTotalBytes!
+                                : null,
+                      ),
+                    );
+                  },
+                ),
               ),
             ),
           ),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          title,
-          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
-          textAlign: TextAlign.center,
-        ),
-      ],
+          const SizedBox(height: 8),
+          Text(
+            category.name,
+            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+            textAlign: TextAlign.center,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      ),
     );
   }
 }

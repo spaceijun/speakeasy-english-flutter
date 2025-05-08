@@ -18,28 +18,28 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _isLoading = false;
   String _errorMessage = '';
 
-  // Fungsi untuk menyimpan session login dengan batas waktu
   Future<void> _saveLoginSession({
     int durationInDays = 7,
     String? token,
+    String? userId,
   }) async {
     final prefs = await SharedPreferences.getInstance();
-
-    // Simpan status login
     await prefs.setBool('isLoggedIn', true);
-
-    // Simpan token jika ada
     if (token != null) {
       await prefs.setString('userToken', token);
+      print('Token saved: $token'); // Log token yang disimpan
     }
-
-    // Hitung waktu expirasi (default 7 hari)
+    if (userId != null) {
+      await prefs.setString('userId', userId);
+      print('User ID saved: $userId'); // Log user ID yang disimpan
+    }
     final currentTime = DateTime.now();
     final expireTime = currentTime.add(Duration(days: durationInDays));
     await prefs.setInt('sessionExpireTime', expireTime.millisecondsSinceEpoch);
-
-    // Simpan email user untuk referensi
     await prefs.setString('userEmail', _emailController.text);
+    print(
+      'Login session saved, expires at: $expireTime',
+    ); // Log waktu kedaluwarsa sesi
   }
 
   Future<void> _login() async {
@@ -55,18 +55,19 @@ class _LoginScreenState extends State<LoginScreen> {
       _errorMessage = '';
     });
 
+    print('Attempting to log in with email: ${_emailController.text}');
+
     try {
       final response = await _authService.login(
         _emailController.text,
         _passwordController.text,
       );
 
+      print('Login response: $response'); // Log response dari API
+
       if (response['success'] == true) {
-        // Login berhasil, simpan session dengan durasi 7 hari
-        // Anda bisa mengambil token dari response jika API mengembalikan token
-        final token =
-            response['token']
-                as String?; // Sesuaikan dengan struktur response API Anda
+        final token = response['token'] as String?;
+        print('Login successful, token: $token'); // Log token yang diterima
         await _saveLoginSession(durationInDays: 7, token: token);
 
         if (mounted) {
@@ -81,11 +82,13 @@ class _LoginScreenState extends State<LoginScreen> {
           _errorMessage =
               response['message'] ?? 'Login gagal. Silakan coba lagi.';
         });
+        print('Login failed: ${_errorMessage}'); // Log pesan kesalahan
       }
     } catch (e) {
       setState(() {
         _errorMessage = 'Terjadi kesalahan: $e';
       });
+      print('Error during login: $e'); // Log kesalahan
     } finally {
       setState(() {
         _isLoading = false;
@@ -186,8 +189,8 @@ class _LoginScreenState extends State<LoginScreen> {
                     fillColor: Colors.white,
                     hintText: 'Email',
                     contentPadding: EdgeInsets.symmetric(
-                      horizontal: 20,
-                      vertical: 16,
+                      horizontal: 10,
+                      vertical: 6,
                     ),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.all(Radius.circular(10)),
@@ -205,8 +208,8 @@ class _LoginScreenState extends State<LoginScreen> {
                     fillColor: Colors.white,
                     hintText: 'Password',
                     contentPadding: EdgeInsets.symmetric(
-                      horizontal: 20,
-                      vertical: 16,
+                      horizontal: 10,
+                      vertical: 6,
                     ),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.all(Radius.circular(10)),

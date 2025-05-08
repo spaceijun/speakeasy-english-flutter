@@ -1,5 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:speak_english/detail/detail_tugas_frasa.dart';
+import 'package:speak_english/detail/detail_tugas_grammar.dart';
 import 'package:speak_english/detail/detail_tugas_hafalan.dart';
+import 'package:speak_english/detail/detail_tugas_idiom.dart';
+import 'package:speak_english/detail/detail_tugas_kosakata.dart';
+import 'package:speak_english/detail/detail_tugas_tenses.dart';
 import 'package:speak_english/home.dart';
 
 void main() {
@@ -45,23 +50,23 @@ class ExamScreen extends StatelessWidget {
       ),
       body: ListView(
         children: [
-          ChapterItem(number: 1, image: 'assets/images/exam.png'),
-          ChapterItem(number: 2, image: 'assets/images/exam.png'),
-          ChapterItem(number: 3, image: 'assets/images/exam.png'),
-          ChapterItem(number: 4, image: 'assets/images/exam.png'),
-          ChapterItem(number: 5, image: 'assets/images/exam.png'),
-          ChapterItem(number: 6, image: 'assets/images/exam.png'),
+          CategoryItem(title: 'Hafalan', image: 'assets/images/exam.png'),
+          CategoryItem(title: 'Grammar', image: 'assets/images/exam.png'),
+          CategoryItem(title: 'Kosakata', image: 'assets/images/exam.png'),
+          CategoryItem(title: 'Tenses', image: 'assets/images/exam.png'),
+          CategoryItem(title: 'Frasa', image: 'assets/images/exam.png'),
+          CategoryItem(title: 'Idiom', image: 'assets/images/exam.png'),
         ],
       ),
     );
   }
 }
 
-class ChapterItem extends StatelessWidget {
-  final int number;
+class CategoryItem extends StatelessWidget {
+  final String title;
   final String image;
 
-  const ChapterItem({Key? key, required this.number, required this.image})
+  const CategoryItem({Key? key, required this.title, required this.image})
     : super(key: key);
 
   @override
@@ -91,24 +96,47 @@ class ChapterItem extends StatelessWidget {
             ),
           ),
         ),
-        title: Text(
-          'Hafalan $number',
-          style: const TextStyle(fontWeight: FontWeight.bold),
-        ),
-        // Subtitle tidak dibutuhkan karena title sudah cukup
+        title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
         trailing: const Icon(Icons.chevron_right, color: Colors.grey),
         onTap: () {
-          // Navigasi ke detail chapter
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder:
-                  (context) => DetailTugasHafalan(number: number.toString()),
-            ),
-          );
+          // Navigasi ke halaman sesuai dengan title
+          navigateToDetailPage(context, title);
         },
       ),
     );
+  }
+
+  // Function untuk navigasi ke halaman yang sesuai berdasarkan title
+  void navigateToDetailPage(BuildContext context, String title) {
+    Widget page;
+
+    // Menentukan halaman yang sesuai berdasarkan title
+    switch (title) {
+      case 'Hafalan':
+        page = TugasHafalanPage();
+        break;
+      case 'Grammar':
+        page = TugasGrammarPage();
+        break;
+      case 'Kosakata':
+        page = TugasKosakatasPage();
+        break;
+      case 'Tenses':
+        page = TugasTensesPage();
+        break;
+      case 'Frasa':
+        page = TugasFrasaPage();
+        break;
+      case 'Idiom':
+        page = TugasIdiomPage();
+        break;
+      default:
+        // Default ke halaman hafalan jika title tidak dikenali
+        page = Home();
+    }
+
+    // Navigasi ke halaman yang sesuai
+    Navigator.push(context, MaterialPageRoute(builder: (context) => page));
   }
 }
 
@@ -142,7 +170,6 @@ class ChapterDetailScreen extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             const SizedBox(height: 20),
-            // Title dihapus dari sini
             const SizedBox(height: 20),
             const Text(
               'Kontenya nanti ditampilkan disini pak dosen.',

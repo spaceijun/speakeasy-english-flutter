@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:speak_english/detail/detail_frasa.dart';
 import 'package:speak_english/home.dart';
 
 void main() {
@@ -179,14 +180,7 @@ class ChapterItem extends StatelessWidget {
         onTap: () {
           Navigator.push(
             context,
-            MaterialPageRoute(
-              builder:
-                  (context) => ChapterDetailScreen(
-                    number: number,
-                    title: title,
-                    type: type,
-                  ),
-            ),
+            MaterialPageRoute(builder: (context) => DetailFrasa()),
           );
         },
       ),

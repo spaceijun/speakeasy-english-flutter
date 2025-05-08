@@ -179,7 +179,7 @@ class _HafalanScreenState extends State<HafalanScreen> {
               ),
             );
           } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return Center(child: Text('No hafalan data available'));
+            return Center(child: Text('Data Hafalan Belum Tersedia'));
           } else {
             final hafalanItems = snapshot.data!;
             return ListView.builder(

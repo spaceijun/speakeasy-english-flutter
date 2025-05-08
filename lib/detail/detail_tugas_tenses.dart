@@ -3,30 +3,32 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:speak_english/detail/data-jawaban/jawaban_hafalan.dart';
-import 'package:speak_english/detail/form/form_tugas_hafalan.dart';
+import 'package:speak_english/detail/data-jawaban/jawaban_tenses.dart';
+import 'package:speak_english/detail/form/form_tugas_grammar.dart';
+import 'package:speak_english/detail/form/form_tugas_tenses.dart';
 
-// Model untuk TugasHafalan
-class TugasHafalan {
+// Model untuk TugasTenses
+class TugasTenses {
   final int id;
-  final int hafalanId;
+  final int tensesId;
   final String kkm;
   final String bodyQuestions;
   final String createdAt;
   final String updatedAt;
 
-  TugasHafalan({
+  TugasTenses({
     required this.id,
-    required this.hafalanId,
+    required this.tensesId,
     required this.kkm,
     required this.bodyQuestions,
     required this.createdAt,
     required this.updatedAt,
   });
 
-  factory TugasHafalan.fromJson(Map<String, dynamic> json) {
-    return TugasHafalan(
+  factory TugasTenses.fromJson(Map<String, dynamic> json) {
+    return TugasTenses(
       id: json['id'],
-      hafalanId: json['hafalan_id'],
+      tensesId: json['tenses_id'],
       kkm: json['kkm'],
       bodyQuestions: json['body_questions'],
       createdAt: json['created_at'],
@@ -35,26 +37,25 @@ class TugasHafalan {
   }
 }
 
-class TugasHafalanPage extends StatefulWidget {
-  const TugasHafalanPage({Key? key}) : super(key: key);
+class TugasTensesPage extends StatefulWidget {
+  const TugasTensesPage({Key? key}) : super(key: key);
 
   @override
-  State<TugasHafalanPage> createState() => _TugasHafalanPageState();
+  State<TugasTensesPage> createState() => _TugasTensesPageState();
 }
 
-class _TugasHafalanPageState extends State<TugasHafalanPage> {
-  late Future<List<TugasHafalan>> _tugasHafalansFuture;
+class _TugasTensesPageState extends State<TugasTensesPage> {
+  late Future<List<TugasTenses>> _TugasTensessFuture;
   bool _isShowingTugas = true;
 
   @override
   void initState() {
     super.initState();
-    _tugasHafalansFuture = _fetchTugasHafalans();
+    _TugasTensessFuture = _fetchTugasTensess();
   }
 
-  Future<List<TugasHafalan>> _fetchTugasHafalans() async {
+  Future<List<TugasTenses>> _fetchTugasTensess() async {
     try {
-      // Mendapatkan user_id dari SharedPreferences
       final prefs = await SharedPreferences.getInstance();
       final userId = prefs.getInt('user_id');
       print('User ID yang sedang login: $userId'); // Log user ID
@@ -63,10 +64,9 @@ class _TugasHafalanPageState extends State<TugasHafalanPage> {
         throw Exception('User ID tidak ditemukan, harap login ulang');
       }
 
-      // Buat URL dengan parameter user_id
       final response = await http.get(
         Uri.parse(
-          'https://speakeasy-english.web.id/api/tugas-hafalans?user_id=$userId',
+          'https://speakeasy-english.web.id/api/tugas-tenses?user_id=$userId',
         ),
         headers: {'Accept': 'application/json'},
       );
@@ -77,14 +77,12 @@ class _TugasHafalanPageState extends State<TugasHafalanPage> {
 
         if (responseData.containsKey('data')) {
           final List<dynamic> data = responseData['data'];
-          return data.map((json) => TugasHafalan.fromJson(json)).toList();
+          return data.map((json) => TugasTenses.fromJson(json)).toList();
         } else {
           return [];
         }
       } else {
-        throw Exception(
-          'Failed to load tugas hafalans: ${response.statusCode}',
-        );
+        throw Exception('Failed to load tugas Tenses: ${response.statusCode}');
       }
     } catch (e) {
       print('API Error: $e');
@@ -106,7 +104,7 @@ class _TugasHafalanPageState extends State<TugasHafalanPage> {
           },
         ),
         title: const Text(
-          'Daftar Tugas Hafalan',
+          'Daftar Tugas Tenses',
           style: TextStyle(
             color: Colors.black,
             fontSize: 16,
@@ -118,7 +116,7 @@ class _TugasHafalanPageState extends State<TugasHafalanPage> {
             icon: const Icon(Icons.refresh, color: Colors.black),
             onPressed: () {
               setState(() {
-                _tugasHafalansFuture = _fetchTugasHafalans();
+                _TugasTensessFuture = _fetchTugasTensess();
               });
             },
           ),
@@ -185,7 +183,7 @@ class _TugasHafalanPageState extends State<TugasHafalanPage> {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => const DataJawabanPage(),
+                          builder: (context) => const JawabanTenses(),
                         ),
                       );
                     },
@@ -240,8 +238,8 @@ class _TugasHafalanPageState extends State<TugasHafalanPage> {
   }
 
   Widget _buildTugasContent() {
-    return FutureBuilder<List<TugasHafalan>>(
-      future: _tugasHafalansFuture,
+    return FutureBuilder<List<TugasTenses>>(
+      future: _TugasTensessFuture,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
@@ -261,7 +259,7 @@ class _TugasHafalanPageState extends State<TugasHafalanPage> {
                 ElevatedButton(
                   onPressed: () {
                     setState(() {
-                      _tugasHafalansFuture = _fetchTugasHafalans();
+                      _TugasTensessFuture = _fetchTugasTensess();
                     });
                   },
                   child: const Text('Coba Lagi'),
@@ -281,14 +279,14 @@ class _TugasHafalanPageState extends State<TugasHafalanPage> {
                 ),
                 const SizedBox(height: 16),
                 const Text(
-                  'Belum Ada Tugas Hafalan',
+                  'Belum Ada Tugas Tenses',
                   style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 8),
                 const Padding(
                   padding: EdgeInsets.symmetric(horizontal: 32),
                   child: Text(
-                    'Saat ini tidak ada tugas hafalan yang tersedia untuk Anda',
+                    'Saat ini tidak ada tugas tenses yang tersedia untuk Anda',
                     textAlign: TextAlign.center,
                     style: TextStyle(color: Colors.black),
                   ),
@@ -298,16 +296,16 @@ class _TugasHafalanPageState extends State<TugasHafalanPage> {
           );
         }
 
-        final tugasHafalans = snapshot.data!;
+        final TugasTensess = snapshot.data!;
 
         return ListView.separated(
-          itemCount: tugasHafalans.length,
+          itemCount: TugasTensess.length,
           separatorBuilder: (context, index) => const Divider(height: 1),
           itemBuilder: (context, index) {
-            final tugas = tugasHafalans[index];
-            return TugasHafalanTile(
-              title: 'Tugas Hafalan ${tugas.id}',
-              hafalanId: tugas.hafalanId,
+            final tugas = TugasTensess[index];
+            return TugasTensesTile(
+              title: 'Tugas Tenses ${tugas.id}',
+              tensesId: tugas.tensesId,
               kkm: tugas.kkm,
               date: _formatDate(tugas.createdAt),
               onTap: () {
@@ -320,7 +318,7 @@ class _TugasHafalanPageState extends State<TugasHafalanPage> {
     );
   }
 
-  void _showTugasDetail(BuildContext context, TugasHafalan tugas) {
+  void _showTugasDetail(BuildContext context, TugasTenses tugas) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -339,7 +337,7 @@ class _TugasHafalanPageState extends State<TugasHafalanPage> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    'Tugas Hafalan ${tugas.id}',
+                    'Tugas Tenses ${tugas.id}',
                     style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
@@ -436,8 +434,8 @@ class _TugasHafalanPageState extends State<TugasHafalanPage> {
                         context,
                         MaterialPageRoute(
                           builder:
-                              (context) => FormTugasHafalan(
-                                tugasHafalanId: tugas.id,
+                              (context) => FormTugasTenses(
+                                tugasTensesId: tugas.id,
                                 pertanyaan: tugas.bodyQuestions,
                                 kkm: tugas.kkm,
                               ),
@@ -447,7 +445,7 @@ class _TugasHafalanPageState extends State<TugasHafalanPage> {
                       // Jika hasil true, refresh data
                       if (result == true) {
                         setState(() {
-                          _tugasHafalansFuture = _fetchTugasHafalans();
+                          _TugasTensessFuture = _fetchTugasTensess();
                         });
                       }
                     },
@@ -501,17 +499,17 @@ Widget _buildGuideItem({required IconData icon, required String text}) {
   );
 }
 
-class TugasHafalanTile extends StatelessWidget {
+class TugasTensesTile extends StatelessWidget {
   final String title;
-  final int hafalanId;
+  final int tensesId;
   final String kkm;
   final String date;
   final VoidCallback onTap;
 
-  const TugasHafalanTile({
+  const TugasTensesTile({
     Key? key,
     required this.title,
-    required this.hafalanId,
+    required this.tensesId,
     required this.kkm,
     required this.date,
     required this.onTap,

@@ -2,31 +2,33 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:speak_english/detail/data-jawaban/jawaban_hafalan.dart';
-import 'package:speak_english/detail/form/form_tugas_hafalan.dart';
+import 'package:speak_english/detail/data-jawaban/jawaban_frasa.dart';
+import 'package:speak_english/detail/data-jawaban/jawaban_grammars.dart';
+import 'package:speak_english/detail/form/form_tugas_frasa.dart';
+import 'package:speak_english/detail/form/form_tugas_grammar.dart';
 
-// Model untuk TugasHafalan
-class TugasHafalan {
+// Model untuk TugasFrasa
+class TugasFrasa {
   final int id;
-  final int hafalanId;
+  final int frasaId;
   final String kkm;
   final String bodyQuestions;
   final String createdAt;
   final String updatedAt;
 
-  TugasHafalan({
+  TugasFrasa({
     required this.id,
-    required this.hafalanId,
+    required this.frasaId,
     required this.kkm,
     required this.bodyQuestions,
     required this.createdAt,
     required this.updatedAt,
   });
 
-  factory TugasHafalan.fromJson(Map<String, dynamic> json) {
-    return TugasHafalan(
+  factory TugasFrasa.fromJson(Map<String, dynamic> json) {
+    return TugasFrasa(
       id: json['id'],
-      hafalanId: json['hafalan_id'],
+      frasaId: json['frasa_id'],
       kkm: json['kkm'],
       bodyQuestions: json['body_questions'],
       createdAt: json['created_at'],
@@ -35,24 +37,24 @@ class TugasHafalan {
   }
 }
 
-class TugasHafalanPage extends StatefulWidget {
-  const TugasHafalanPage({Key? key}) : super(key: key);
+class TugasFrasaPage extends StatefulWidget {
+  const TugasFrasaPage({Key? key}) : super(key: key);
 
   @override
-  State<TugasHafalanPage> createState() => _TugasHafalanPageState();
+  State<TugasFrasaPage> createState() => _TugasFrasaPageState();
 }
 
-class _TugasHafalanPageState extends State<TugasHafalanPage> {
-  late Future<List<TugasHafalan>> _tugasHafalansFuture;
+class _TugasFrasaPageState extends State<TugasFrasaPage> {
+  late Future<List<TugasFrasa>> _TugasFrasasFuture;
   bool _isShowingTugas = true;
 
   @override
   void initState() {
     super.initState();
-    _tugasHafalansFuture = _fetchTugasHafalans();
+    _TugasFrasasFuture = _fetchTugasFrasas();
   }
 
-  Future<List<TugasHafalan>> _fetchTugasHafalans() async {
+  Future<List<TugasFrasa>> _fetchTugasFrasas() async {
     try {
       // Mendapatkan user_id dari SharedPreferences
       final prefs = await SharedPreferences.getInstance();
@@ -66,7 +68,7 @@ class _TugasHafalanPageState extends State<TugasHafalanPage> {
       // Buat URL dengan parameter user_id
       final response = await http.get(
         Uri.parse(
-          'https://speakeasy-english.web.id/api/tugas-hafalans?user_id=$userId',
+          'https://speakeasy-english.web.id/api/tugas-frasas?user_id=$userId',
         ),
         headers: {'Accept': 'application/json'},
       );
@@ -77,14 +79,12 @@ class _TugasHafalanPageState extends State<TugasHafalanPage> {
 
         if (responseData.containsKey('data')) {
           final List<dynamic> data = responseData['data'];
-          return data.map((json) => TugasHafalan.fromJson(json)).toList();
+          return data.map((json) => TugasFrasa.fromJson(json)).toList();
         } else {
           return [];
         }
       } else {
-        throw Exception(
-          'Failed to load tugas hafalans: ${response.statusCode}',
-        );
+        throw Exception('Failed to load tugas frasa: ${response.statusCode}');
       }
     } catch (e) {
       print('API Error: $e');
@@ -106,7 +106,7 @@ class _TugasHafalanPageState extends State<TugasHafalanPage> {
           },
         ),
         title: const Text(
-          'Daftar Tugas Hafalan',
+          'Daftar Tugas Frasa',
           style: TextStyle(
             color: Colors.black,
             fontSize: 16,
@@ -118,7 +118,7 @@ class _TugasHafalanPageState extends State<TugasHafalanPage> {
             icon: const Icon(Icons.refresh, color: Colors.black),
             onPressed: () {
               setState(() {
-                _tugasHafalansFuture = _fetchTugasHafalans();
+                _TugasFrasasFuture = _fetchTugasFrasas();
               });
             },
           ),
@@ -185,7 +185,7 @@ class _TugasHafalanPageState extends State<TugasHafalanPage> {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => const DataJawabanPage(),
+                          builder: (context) => const JawabanFrasa(),
                         ),
                       );
                     },
@@ -240,8 +240,8 @@ class _TugasHafalanPageState extends State<TugasHafalanPage> {
   }
 
   Widget _buildTugasContent() {
-    return FutureBuilder<List<TugasHafalan>>(
-      future: _tugasHafalansFuture,
+    return FutureBuilder<List<TugasFrasa>>(
+      future: _TugasFrasasFuture,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
@@ -261,7 +261,7 @@ class _TugasHafalanPageState extends State<TugasHafalanPage> {
                 ElevatedButton(
                   onPressed: () {
                     setState(() {
-                      _tugasHafalansFuture = _fetchTugasHafalans();
+                      _TugasFrasasFuture = _fetchTugasFrasas();
                     });
                   },
                   child: const Text('Coba Lagi'),
@@ -281,14 +281,14 @@ class _TugasHafalanPageState extends State<TugasHafalanPage> {
                 ),
                 const SizedBox(height: 16),
                 const Text(
-                  'Belum Ada Tugas Hafalan',
+                  'Belum Ada Tugas Frasa',
                   style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 8),
                 const Padding(
                   padding: EdgeInsets.symmetric(horizontal: 32),
                   child: Text(
-                    'Saat ini tidak ada tugas hafalan yang tersedia untuk Anda',
+                    'Saat ini tidak ada tugas grammar yang tersedia untuk Anda',
                     textAlign: TextAlign.center,
                     style: TextStyle(color: Colors.black),
                   ),
@@ -298,16 +298,16 @@ class _TugasHafalanPageState extends State<TugasHafalanPage> {
           );
         }
 
-        final tugasHafalans = snapshot.data!;
+        final TugasFrasas = snapshot.data!;
 
         return ListView.separated(
-          itemCount: tugasHafalans.length,
+          itemCount: TugasFrasas.length,
           separatorBuilder: (context, index) => const Divider(height: 1),
           itemBuilder: (context, index) {
-            final tugas = tugasHafalans[index];
-            return TugasHafalanTile(
-              title: 'Tugas Hafalan ${tugas.id}',
-              hafalanId: tugas.hafalanId,
+            final tugas = TugasFrasas[index];
+            return TugasFrasaTile(
+              title: 'Tugas Frasa ${tugas.id}',
+              frasaId: tugas.frasaId,
               kkm: tugas.kkm,
               date: _formatDate(tugas.createdAt),
               onTap: () {
@@ -320,7 +320,7 @@ class _TugasHafalanPageState extends State<TugasHafalanPage> {
     );
   }
 
-  void _showTugasDetail(BuildContext context, TugasHafalan tugas) {
+  void _showTugasDetail(BuildContext context, TugasFrasa tugas) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -339,7 +339,7 @@ class _TugasHafalanPageState extends State<TugasHafalanPage> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    'Tugas Hafalan ${tugas.id}',
+                    'Tugas Frasa ${tugas.id}',
                     style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
@@ -436,8 +436,8 @@ class _TugasHafalanPageState extends State<TugasHafalanPage> {
                         context,
                         MaterialPageRoute(
                           builder:
-                              (context) => FormTugasHafalan(
-                                tugasHafalanId: tugas.id,
+                              (context) => FormTugasFrasa(
+                                tugasFrasaId: tugas.id,
                                 pertanyaan: tugas.bodyQuestions,
                                 kkm: tugas.kkm,
                               ),
@@ -447,7 +447,7 @@ class _TugasHafalanPageState extends State<TugasHafalanPage> {
                       // Jika hasil true, refresh data
                       if (result == true) {
                         setState(() {
-                          _tugasHafalansFuture = _fetchTugasHafalans();
+                          _TugasFrasasFuture = _fetchTugasFrasas();
                         });
                       }
                     },
@@ -501,17 +501,17 @@ Widget _buildGuideItem({required IconData icon, required String text}) {
   );
 }
 
-class TugasHafalanTile extends StatelessWidget {
+class TugasFrasaTile extends StatelessWidget {
   final String title;
-  final int hafalanId;
+  final int frasaId;
   final String kkm;
   final String date;
   final VoidCallback onTap;
 
-  const TugasHafalanTile({
+  const TugasFrasaTile({
     Key? key,
     required this.title,
-    required this.hafalanId,
+    required this.frasaId,
     required this.kkm,
     required this.date,
     required this.onTap,
