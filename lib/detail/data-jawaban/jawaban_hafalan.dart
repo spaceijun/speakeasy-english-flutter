@@ -29,14 +29,14 @@ class JawabanTugas {
 
   factory JawabanTugas.fromJson(Map<String, dynamic> json) {
     return JawabanTugas(
-      id: json['id'] ?? 0,
-      tugasHafalanId: json['tugas_hafalan_id'] ?? 0,
-      userId: json['user_id'] ?? 0,
-      bodyAnswers: json['body_answers'] ?? '',
-      nilai: json['nilai'] ?? '0',
-      status: json['status'] ?? 'Belum Dikoreksi',
-      createdAt: json['created_at'] ?? DateTime.now().toString(),
-      updatedAt: json['updated_at'] ?? DateTime.now().toString(),
+      id: _parseInt(json['id']),
+      tugasHafalanId: _parseInt(json['tugas_hafalan_id']),
+      userId: _parseInt(json['user_id']),
+      bodyAnswers: json['body_answers']?.toString() ?? '',
+      nilai: json['nilai']?.toString() ?? '0',
+      status: json['status']?.toString() ?? 'Belum Dikoreksi',
+      createdAt: json['created_at']?.toString() ?? DateTime.now().toString(),
+      updatedAt: json['updated_at']?.toString() ?? DateTime.now().toString(),
       tugasHafalan:
           json['tugas_hafalan'] != null
               ? (json['tugas_hafalan'] is Map
@@ -44,6 +44,16 @@ class JawabanTugas {
                   : null)
               : null,
     );
+  }
+
+  // Helper method to safely parse integer values
+  static int _parseInt(dynamic value) {
+    if (value == null) return 0;
+    if (value is int) return value;
+    if (value is String) {
+      return int.tryParse(value) ?? 0;
+    }
+    return 0;
   }
 }
 
@@ -69,6 +79,7 @@ class _DataJawabanPageState extends State<DataJawabanPage> {
       // Mendapatkan user_id dari SharedPreferences
       final prefs = await SharedPreferences.getInstance();
       final userId = prefs.getInt('user_id');
+      final token = prefs.getString('token'); // Ambil token juga
       print('User ID yang sedang login: $userId'); // Log user ID
 
       if (userId == null) {
@@ -80,28 +91,66 @@ class _DataJawabanPageState extends State<DataJawabanPage> {
         Uri.parse(
           'https://speakeasy-english.web.id/api/jawaban-hafalan/user/$userId',
         ),
-        headers: {'Accept': 'application/json'},
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+          if (token != null) 'Authorization': 'Bearer $token',
+        },
       );
+
+      print('Response status: ${response.statusCode}');
+      print('Response body: ${response.body}');
 
       if (response.statusCode == 200) {
         final dynamic responseData = json.decode(response.body);
         print('API Response: $responseData'); // Log response
 
+        List<JawabanTugas> jawabanList = [];
+
         // Periksa apakah respons adalah Map atau List
-        if (responseData is Map<String, dynamic> &&
-            responseData.containsKey('data')) {
-          // Kasus jika API mengembalikan struktur {"data": [...]}
-          final List<dynamic> data = responseData['data'];
-          return data.map((json) => JawabanTugas.fromJson(json)).toList();
+        if (responseData is Map<String, dynamic>) {
+          if (responseData.containsKey('data')) {
+            // Kasus jika API mengembalikan struktur {"data": [...]}
+            final List<dynamic> data = responseData['data'];
+            jawabanList =
+                data.map((json) => JawabanTugas.fromJson(json)).toList();
+          } else if (responseData.containsKey('jawaban')) {
+            // Kemungkinan struktur lain {"jawaban": [...]}
+            final List<dynamic> data = responseData['jawaban'];
+            jawabanList =
+                data.map((json) => JawabanTugas.fromJson(json)).toList();
+          } else {
+            // Jika responseData adalah object tunggal, buat list
+            jawabanList = [JawabanTugas.fromJson(responseData)];
+          }
         } else if (responseData is List) {
           // Kasus jika API langsung mengembalikan array jawaban
-          return responseData
-              .map((json) => JawabanTugas.fromJson(json))
-              .toList();
+          jawabanList =
+              responseData.map((json) => JawabanTugas.fromJson(json)).toList();
         } else {
           print('Format respons API tidak dikenali: $responseData');
           return [];
         }
+
+        // Filter jawaban yang tidak kosong dan sort berdasarkan tanggal terbaru
+        jawabanList =
+            jawabanList
+                .where((jawaban) => jawaban.bodyAnswers.isNotEmpty)
+                .toList();
+
+        // Sort berdasarkan tanggal terbaru
+        jawabanList.sort(
+          (a, b) => DateTime.parse(
+            b.createdAt,
+          ).compareTo(DateTime.parse(a.createdAt)),
+        );
+
+        print('Total jawaban ditemukan: ${jawabanList.length}');
+        return jawabanList;
+      } else if (response.statusCode == 404) {
+        // Tidak ada jawaban ditemukan
+        print('Tidak ada jawaban ditemukan untuk user ini');
+        return [];
       } else {
         throw Exception('Gagal memuat data jawaban: ${response.statusCode}');
       }
@@ -114,9 +163,22 @@ class _DataJawabanPageState extends State<DataJawabanPage> {
   String _getStatusColor(String status) {
     switch (status.toLowerCase()) {
       case 'belum dikoreksi':
+      case 'pending':
+      case 'menunggu koreksi':
         return 'orange';
       case 'sudah dikoreksi':
+      case 'selesai':
+      case 'corrected':
+      case 'completed':
         return 'green';
+      case 'lulus':
+      case 'diterima':
+      case 'approved':
+        return 'green';
+      case 'tidak lulus':
+      case 'ditolak':
+      case 'rejected':
+        return 'red';
       default:
         return 'grey';
     }
@@ -325,10 +387,19 @@ class _DataJawabanPageState extends State<DataJawabanPage> {
                           const Padding(
                             padding: EdgeInsets.symmetric(horizontal: 32),
                             child: Text(
-                              'Anda belum mengerjakan tugas hafalan apapun',
+                              'Anda belum mengerjakan tugas hafalan apapun atau jawaban sedang diproses',
                               textAlign: TextAlign.center,
                               style: TextStyle(color: Colors.grey),
                             ),
+                          ),
+                          const SizedBox(height: 16),
+                          ElevatedButton(
+                            onPressed: () {
+                              setState(() {
+                                _jawabanTugasFuture = _fetchJawabanTugas();
+                              });
+                            },
+                            child: const Text('Refresh'),
                           ),
                         ],
                       ),
@@ -346,9 +417,18 @@ class _DataJawabanPageState extends State<DataJawabanPage> {
                         (context, index) => const Divider(height: 1),
                     itemBuilder: (context, index) {
                       final jawaban = jawabanTugas[index];
+
+                      // Pastikan jawaban memiliki konten
+                      if (jawaban.bodyAnswers.isEmpty) {
+                        return const SizedBox.shrink(); // Skip jika jawaban kosong
+                      }
+
                       final String tugasTitle =
-                          jawaban.tugasHafalan != null
-                              ? 'Tugas Hafalan ${jawaban.tugasHafalan!['id']}'
+                          jawaban.tugasHafalan != null &&
+                                  jawaban.tugasHafalan!.containsKey('judul')
+                              ? jawaban.tugasHafalan!['judul']
+                              : jawaban.tugasHafalan != null
+                              ? 'Tugas Hafalan ${jawaban.tugasHafalan!['id'] ?? jawaban.tugasHafalanId}'
                               : 'Tugas Hafalan ${jawaban.tugasHafalanId}';
 
                       return JawabanTugasTile(
@@ -396,7 +476,6 @@ class _DataJawabanPageState extends State<DataJawabanPage> {
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-
                   IconButton(
                     icon: const Icon(Icons.close),
                     onPressed: () => Navigator.pop(context),
@@ -445,7 +524,6 @@ class _DataJawabanPageState extends State<DataJawabanPage> {
                   ],
                 ),
               ),
-
               const SizedBox(height: 16),
               // Jawaban
               const Text(
@@ -463,7 +541,64 @@ class _DataJawabanPageState extends State<DataJawabanPage> {
                     border: Border.all(color: Colors.grey.shade300),
                   ),
                   child: SingleChildScrollView(
-                    child: _buildHtmlContent(jawaban.bodyAnswers),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildHtmlContent(jawaban.bodyAnswers),
+                        // Tampilkan feedback jika ada
+                        if (jawaban.status.toLowerCase() == 'sudah dikoreksi' ||
+                            jawaban.status.toLowerCase() == 'selesai') ...[
+                          const SizedBox(height: 16),
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: Colors.blue.shade50,
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: Colors.blue.shade200),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Icon(
+                                      Icons.feedback,
+                                      size: 16,
+                                      color: Colors.blue.shade700,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      'Feedback Koreksi:',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.blue.shade700,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  'Nilai: ${jawaban.nilai}/100',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: Colors.blue.shade700,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  'Status: ${jawaban.status}',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: Colors.blue.shade700,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -471,7 +606,7 @@ class _DataJawabanPageState extends State<DataJawabanPage> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   ElevatedButton.icon(
-                    icon: const Icon(Icons.edit_note, size: 16),
+                    icon: const Icon(Icons.delete, size: 16),
                     label: const Text('Delete Jawaban'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.red,
@@ -503,7 +638,9 @@ class _DataJawabanPageState extends State<DataJawabanPage> {
       builder: (BuildContext context) {
         return AlertDialog(
           title: const Text('Konfirmasi Hapus'),
-          content: Text('Apakah Anda yakin ingin menghapus jawaban tugas ini?'),
+          content: const Text(
+            'Apakah Anda yakin ingin menghapus jawaban tugas ini?',
+          ),
           actions: <Widget>[
             TextButton(
               child: const Text('Batal'),
@@ -551,7 +688,7 @@ class _DataJawabanPageState extends State<DataJawabanPage> {
         ),
         headers: {
           'Accept': 'application/json',
-          'Authorization': 'Bearer $token',
+          if (token != null) 'Authorization': 'Bearer $token',
         },
       );
 
@@ -581,7 +718,9 @@ class _DataJawabanPageState extends State<DataJawabanPage> {
       }
     } catch (e) {
       // Tutup loading indicator jika terjadi error
-      Navigator.of(context).pop();
+      if (Navigator.of(context).canPop()) {
+        Navigator.of(context).pop();
+      }
 
       // Tampilkan pesan error
       ScaffoldMessenger.of(context).showSnackBar(

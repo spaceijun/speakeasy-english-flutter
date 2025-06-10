@@ -12,7 +12,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Hafalan',
+      title: 'Indonesian Phrases',
       theme: ThemeData(primarySwatch: Colors.blue, fontFamily: 'Roboto'),
       home: const HafalanSelectionScreen(),
       debugShowCheckedModeBanner: false,
@@ -20,7 +20,6 @@ class MyApp extends StatelessWidget {
   }
 }
 
-// Screen to select which hafalan to view
 class HafalanSelectionScreen extends StatelessWidget {
   const HafalanSelectionScreen({Key? key}) : super(key: key);
 
@@ -101,12 +100,26 @@ class PhraseModel {
   });
 
   factory PhraseModel.fromJson(Map<String, dynamic> json) {
+    // Debug print untuk melihat struktur data
+    print('Parsing phrase JSON: $json');
+
     return PhraseModel(
-      id: json['id'] ?? 0,
-      hafalanId: json['hafalan_id'] ?? 0,
-      name: json['name'] ?? '',
-      description: json['description'] ?? '',
+      id: _parseToInt(json['id']),
+      hafalanId: _parseToInt(json['hafalan_id']),
+      name: json['name']?.toString() ?? '',
+      description: json['description']?.toString() ?? '',
     );
+  }
+
+  // Helper method untuk mengkonversi ke int dengan aman
+  static int _parseToInt(dynamic value) {
+    if (value == null) return 0;
+    if (value is int) return value;
+    if (value is String) {
+      return int.tryParse(value) ?? 0;
+    }
+    if (value is double) return value.toInt();
+    return 0;
   }
 }
 
@@ -134,29 +147,127 @@ class _DetailHafalanState extends State<DetailHafalan> {
     try {
       final response = await http.get(
         Uri.parse(
-          'https://speakeasy-english.web.id/api/detail-hafalans?hafalan_id=${widget.hafalanId}',
+          'https://speakeasy-english.web.id/api/hafalan/${widget.hafalanId}/details',
         ),
         headers: {'Accept': 'application/json'},
       );
 
+      print('Response Status Code: ${response.statusCode}');
+      print('Response Body: ${response.body}');
+
       if (response.statusCode == 200) {
-        print('API Response: ${response.body}');
-        // JSON Response
         final dynamic jsonData = json.decode(response.body);
+        print('Parsed JSON Data: $jsonData');
 
-        if (jsonData is Map &&
-            jsonData.containsKey('data') &&
-            jsonData['data'] is List) {
-          final List<dynamic> phrasesList = jsonData['data'];
+        List<PhraseModel> phrases = [];
 
-          // Filter berdasarkan hafalan_id
-          return phrasesList
-              .where((item) => item['hafalan_id'] == widget.hafalanId)
-              .map((item) => PhraseModel.fromJson(item))
-              .toList();
+        // Handle different response formats
+        if (jsonData is Map) {
+          // Check for 'data' key first
+          if (jsonData.containsKey('data')) {
+            final data = jsonData['data'];
+            if (data is List) {
+              phrases =
+                  data
+                      .map((item) {
+                        try {
+                          return PhraseModel.fromJson(
+                            Map<String, dynamic>.from(item),
+                          );
+                        } catch (e) {
+                          print('Error parsing item: $item, Error: $e');
+                          return null;
+                        }
+                      })
+                      .where((item) => item != null)
+                      .cast<PhraseModel>()
+                      .toList();
+            } else if (data is Map) {
+              // If data is a map, look for lists inside it
+              for (var key in data.keys) {
+                if (data[key] is List) {
+                  phrases =
+                      (data[key] as List)
+                          .map((item) {
+                            try {
+                              return PhraseModel.fromJson(
+                                Map<String, dynamic>.from(item),
+                              );
+                            } catch (e) {
+                              print('Error parsing item: $item, Error: $e');
+                              return null;
+                            }
+                          })
+                          .where((item) => item != null)
+                          .cast<PhraseModel>()
+                          .toList();
+                  break;
+                }
+              }
+            }
+          } else {
+            // Look for any list in the root object
+            for (var key in jsonData.keys) {
+              if (jsonData[key] is List) {
+                phrases =
+                    (jsonData[key] as List)
+                        .map((item) {
+                          try {
+                            return PhraseModel.fromJson(
+                              Map<String, dynamic>.from(item),
+                            );
+                          } catch (e) {
+                            print('Error parsing item: $item, Error: $e');
+                            return null;
+                          }
+                        })
+                        .where((item) => item != null)
+                        .cast<PhraseModel>()
+                        .toList();
+                break;
+              }
+            }
+          }
+        } else if (jsonData is List) {
+          // Direct array response
+          phrases =
+              jsonData
+                  .map((item) {
+                    try {
+                      return PhraseModel.fromJson(
+                        Map<String, dynamic>.from(item),
+                      );
+                    } catch (e) {
+                      print('Error parsing item: $item, Error: $e');
+                      return null;
+                    }
+                  })
+                  .where((item) => item != null)
+                  .cast<PhraseModel>()
+                  .toList();
         }
 
-        return [];
+        print('Total phrases found: ${phrases.length}');
+
+        // Filter phrases by hafalan_id (but only if we have multiple hafalan data)
+        final filteredPhrases =
+            phrases.where((phrase) {
+              print(
+                'Phrase hafalan_id: ${phrase.hafalanId}, Target hafalan_id: ${widget.hafalanId}',
+              );
+              return phrase.hafalanId == widget.hafalanId;
+            }).toList();
+
+        print('Filtered phrases count: ${filteredPhrases.length}');
+
+        // If no phrases match the filter, return all phrases
+        // (this handles cases where the API only returns phrases for the requested hafalan)
+        if (filteredPhrases.isEmpty && phrases.isNotEmpty) {
+          print('No matching hafalan_id found, returning all phrases');
+          return phrases;
+        }
+
+        return filteredPhrases;
       } else {
         throw Exception('Failed to load phrases: ${response.statusCode}');
       }
@@ -215,8 +326,13 @@ class _DetailHafalanState extends State<DetailHafalan> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   const Text(
-                    'Data Detail Hafalan Belum Tersedia.',
+                    'No phrases available for this hafalan',
                     style: TextStyle(fontSize: 16),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Hafalan ID: ${widget.hafalanId}',
+                    style: const TextStyle(fontSize: 12, color: Colors.grey),
                   ),
                   const SizedBox(height: 16),
                   ElevatedButton(
@@ -241,6 +357,7 @@ class _DetailHafalanState extends State<DetailHafalan> {
                   number: (index + 1).toString(),
                   englishPhrase: phrase.name,
                   indonesianPhrase: phrase.description,
+                  isEven: index % 2 == 0,
                 );
               },
             );
@@ -255,12 +372,14 @@ class PhraseItem extends StatelessWidget {
   final String number;
   final String englishPhrase;
   final String indonesianPhrase;
+  final bool isEven;
 
   const PhraseItem({
     Key? key,
     required this.number,
     required this.englishPhrase,
     required this.indonesianPhrase,
+    required this.isEven,
   }) : super(key: key);
 
   @override
@@ -271,7 +390,7 @@ class PhraseItem extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
           decoration: BoxDecoration(
             color:
-                index.isEven
+                isEven
                     ? const Color(0xFFFDF3F1).withOpacity(0.5)
                     : Colors.transparent,
           ),
@@ -314,7 +433,4 @@ class PhraseItem extends StatelessWidget {
       ],
     );
   }
-
-  // Property for alternating row colors
-  int get index => int.parse(number) - 1;
 }

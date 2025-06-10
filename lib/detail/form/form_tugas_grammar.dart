@@ -12,7 +12,7 @@ class FormTugasGrammar extends StatefulWidget {
     Key? key,
     required this.tugasGrammarId,
     required this.pertanyaan,
-    required this.kkm,
+    required this.kkm, required int TugasGrammarId,
   }) : super(key: key);
 
   @override

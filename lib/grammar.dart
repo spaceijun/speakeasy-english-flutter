@@ -44,12 +44,19 @@ class GrammarCategory {
     }
 
     print('Image URL processed: $imageUrl');
+    print(
+      'detailgram_id from JSON: ${json['detailgram_id']}, type: ${json['detailgram_id'].runtimeType}',
+    );
+    print('Converted ID: ${int.tryParse(json['detailgram_id'].toString())}');
 
     return GrammarCategory(
-      title: json['name'] ?? '',
+      title: json['name'] ?? 'Unknown',
       imagePath:
           imageUrl.isNotEmpty ? imageUrl : 'assets/images/grammar/book-1.png',
-      id: json['id'] ?? 0, // Mengambil ID dari response API
+      id:
+          int.tryParse(json['detailgram_id'].toString()) ??
+          json['id'] ??
+          0, // Convert detailgram_id ke int
     );
   }
 }
@@ -77,35 +84,48 @@ class _GrammarScreenState extends State<GrammarScreen> {
         headers: {'Accept': 'application/json'},
       );
 
-      if (response.statusCode == 200) {
-        print('API Response: ${response.body}');
+      print('API Response Status: ${response.statusCode}');
+      print('API Response Body: ${response.body}');
 
+      if (response.statusCode == 200) {
         final dynamic jsonData = json.decode(response.body);
 
+        List<GrammarCategory> categories = [];
+
         if (jsonData is List) {
-          return jsonData
-              .map((item) => GrammarCategory.fromJson(item))
-              .toList();
-        } else if (jsonData is Map) {
+          // Jika response langsung berupa array
+          categories =
+              jsonData.map((item) => GrammarCategory.fromJson(item)).toList();
+        } else if (jsonData is Map<String, dynamic>) {
+          // Jika response berupa object dengan berbagai kemungkinan struktur
           if (jsonData.containsKey('data') && jsonData['data'] is List) {
+            // Struktur: {"data": [...]}
             final List<dynamic> grammarList = jsonData['data'];
-            return grammarList
-                .map((item) => GrammarCategory.fromJson(item))
-                .toList();
+            categories =
+                grammarList
+                    .map((item) => GrammarCategory.fromJson(item))
+                    .toList();
           } else {
-            // Look for any list in the response
+            // Cari key yang berisi array
             for (var key in jsonData.keys) {
               if (jsonData[key] is List) {
                 final List<dynamic> grammarList = jsonData[key];
-                return grammarList
-                    .map((item) => GrammarCategory.fromJson(item))
-                    .toList();
+                categories =
+                    grammarList
+                        .map((item) => GrammarCategory.fromJson(item))
+                        .toList();
+                break;
               }
             }
           }
         }
 
-        return [];
+        print('Total categories found: ${categories.length}');
+        for (var category in categories) {
+          print('Category ID: ${category.id}, Title: ${category.title}');
+        }
+
+        return categories;
       } else {
         throw Exception(
           'Failed to load grammar categories: ${response.statusCode}',
@@ -119,6 +139,9 @@ class _GrammarScreenState extends State<GrammarScreen> {
 
   // Fungsi untuk navigasi ke halaman DetailGrammar
   void _navigateToGrammarDetail(GrammarCategory category) {
+    print(
+      'Navigating to detail with ID: ${category.id}, Title: ${category.title}',
+    );
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -235,7 +258,6 @@ class CategoryItem extends StatelessWidget {
               decoration: BoxDecoration(
                 color: const Color(0xFFFCE4EC), // Light pink background
                 borderRadius: BorderRadius.circular(16),
-                // Menambah efek bayangan ketika di-tap
                 boxShadow: [
                   BoxShadow(
                     color: Colors.black.withOpacity(0.1),

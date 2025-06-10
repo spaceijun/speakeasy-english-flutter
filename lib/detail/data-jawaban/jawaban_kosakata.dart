@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 
-// Model untuk JawabanTugas
+// Model untuk JawabanTugas - Fixed version
 class JawabanTugas {
   final int id;
   final int tugasKosakatasId;
@@ -29,14 +29,15 @@ class JawabanTugas {
 
   factory JawabanTugas.fromJson(Map<String, dynamic> json) {
     return JawabanTugas(
-      id: json['id'] ?? 0,
-      tugasKosakatasId: json['tugas_kosakatas_id'] ?? 0,
-      userId: json['user_id'] ?? 0,
-      bodyAnswers: json['body_answers'] ?? '',
-      nilai: json['nilai'] ?? '0',
-      status: json['status'] ?? 'Belum Dikoreksi',
-      createdAt: json['created_at'] ?? DateTime.now().toString(),
-      updatedAt: json['updated_at'] ?? DateTime.now().toString(),
+      // Safe parsing for integers - handles both String and int types
+      id: _parseToInt(json['id']) ?? 0,
+      tugasKosakatasId: _parseToInt(json['tugas_kosakatas_id']) ?? 0,
+      userId: _parseToInt(json['user_id']) ?? 0,
+      bodyAnswers: json['body_answers']?.toString() ?? '',
+      nilai: json['nilai']?.toString() ?? '0',
+      status: json['status']?.toString() ?? 'Belum Dikoreksi',
+      createdAt: json['created_at']?.toString() ?? DateTime.now().toString(),
+      updatedAt: json['updated_at']?.toString() ?? DateTime.now().toString(),
       tugasKosakatas:
           json['tugas_kosakatas'] != null
               ? (json['tugas_kosakatas'] is Map
@@ -44,6 +45,22 @@ class JawabanTugas {
                   : null)
               : null,
     );
+  }
+
+  // Helper method to safely parse integers from dynamic values
+  static int? _parseToInt(dynamic value) {
+    if (value == null) return null;
+    if (value is int) return value;
+    if (value is String) {
+      try {
+        return int.parse(value);
+      } catch (e) {
+        print('Error parsing int from string: $value');
+        return null;
+      }
+    }
+    if (value is double) return value.toInt();
+    return null;
   }
 }
 

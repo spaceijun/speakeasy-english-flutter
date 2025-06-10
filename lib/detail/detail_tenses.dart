@@ -26,6 +26,15 @@ class _DetailTensesState extends State<DetailTenses> {
     _fetchDetailData();
   }
 
+  // Helper function to safely convert to int
+  int _safeParseInt(dynamic value) {
+    if (value is int) return value;
+    if (value is String) {
+      return int.tryParse(value) ?? 0;
+    }
+    return 0;
+  }
+
   Future<void> _fetchDetailData() async {
     try {
       final response = await http.get(
@@ -50,9 +59,9 @@ class _DetailTensesState extends State<DetailTenses> {
         if (jsonData is Map<String, dynamic> && jsonData['data'] is List) {
           final List list = jsonData['data'];
 
-          // cari item dengan id yang cocok
+          // cari item dengan id yang cocok - dengan konversi type yang aman
           final item = list.cast<Map>().firstWhere(
-            (e) => e['detail_tenses_id'] == widget.id,
+            (e) => _safeParseInt(e['detail_tenses_id']) == widget.id,
             orElse: () => {},
           );
 
@@ -68,7 +77,7 @@ class _DetailTensesState extends State<DetailTenses> {
         /// 2) Jika API langsung mengembalikan array
         else if (jsonData is List) {
           final item = jsonData.cast<Map>().firstWhere(
-            (e) => e['detail_tenses_id'] == widget.id,
+            (e) => _safeParseInt(e['detail_tenses_id']) == widget.id,
             orElse: () => {},
           );
 
@@ -175,18 +184,6 @@ class _DetailTensesState extends State<DetailTenses> {
 
             // Description with HTML rendering
             Container(
-              // decoration: BoxDecoration(
-              //   color: const Color(0xFFFCE4EC),
-              //   borderRadius: BorderRadius.circular(8.0),
-              //   boxShadow: [
-              //     BoxShadow(
-              //       color: Colors.grey.withOpacity(0.2),
-              //       spreadRadius: 1,
-              //       blurRadius: 3,
-              //       offset: const Offset(0, 2),
-              //     ),
-              //   ],
-              // ),
               padding: const EdgeInsets.all(16.0),
               margin: const EdgeInsets.symmetric(vertical: 8.0),
 

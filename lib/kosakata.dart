@@ -50,12 +50,22 @@ class KosakataCategory {
 
     print('Image URL processed: $imageUrl');
 
+    // Helper function to safely parse integer values
+    int parseIntSafely(dynamic value) {
+      if (value == null) return 0;
+      if (value is int) return value;
+      if (value is String) {
+        return int.tryParse(value) ?? 0;
+      }
+      return 0;
+    }
+
     return KosakataCategory(
-      id: json['id'] ?? 0,
-      categoryId: json['category_id'] ?? 0,
-      name: json['name'] ?? '',
+      id: parseIntSafely(json['id']),
+      categoryId: parseIntSafely(json['category_id']),
+      name: json['name']?.toString() ?? '',
       images: imageUrl,
-      description: json['description'] ?? '',
+      description: json['description']?.toString() ?? '',
     );
   }
 }

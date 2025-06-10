@@ -9,9 +9,32 @@ import 'package:speak_english/hafalan.dart';
 import 'package:speak_english/kosakata.dart';
 import 'package:speak_english/login.dart'; // Import halaman login
 import 'package:speak_english/tenses.dart';
+import 'package:speak_english/ad_manager.dart'; // Import ad manager
 
-class Home extends StatelessWidget {
+class Home extends StatefulWidget {
   const Home({super.key});
+
+  @override
+  State<Home> createState() => _HomeState();
+}
+
+class _HomeState extends State<Home> {
+  late InterstitialAdManager _interstitialAdManager;
+  int _menuTapCount = 0; // Counter untuk menampilkan interstitial ad
+
+  @override
+  void initState() {
+    super.initState();
+    // Inisialisasi interstitial ad manager
+    _interstitialAdManager = InterstitialAdManager();
+    _interstitialAdManager.loadAd();
+  }
+
+  @override
+  void dispose() {
+    _interstitialAdManager.dispose();
+    super.dispose();
+  }
 
   // Fungsi untuk menghapus session
   Future<void> _clearLoginSession() async {
@@ -22,6 +45,24 @@ class Home extends StatelessWidget {
     await prefs.remove('sessionExpireTime');
     await prefs.remove('userToken');
     await prefs.remove('userEmail');
+  }
+
+  // Fungsi untuk menampilkan interstitial ad setiap 3 kali tap menu
+  void _handleMenuTap(VoidCallback originalOnTap) {
+    _menuTapCount++;
+
+    // Tampilkan interstitial ad setiap 3 kali tap
+    if (_menuTapCount % 3 == 0 && _interstitialAdManager.isLoaded) {
+      _interstitialAdManager.showAd(
+        onAdClosed: () {
+          // Setelah ad ditutup, jalankan fungsi navigasi asli
+          originalOnTap();
+        },
+      );
+    } else {
+      // Langsung jalankan fungsi navigasi
+      originalOnTap();
+    }
   }
 
   @override
@@ -105,220 +146,237 @@ class Home extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        // leading: IconButton(
-        //   icon: const Icon(Icons.arrow_back, color: Colors.black),
-        //   onPressed: () {
-        //     Navigator.pop(context);
-        //   },
-        // ),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Header section
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Small image above the header text
-                    GestureDetector(
-                      onTap: () async {
-                        final bool? confirm = await showDialog<bool>(
-                          context: context,
-                          builder:
-                              (context) => AlertDialog(
-                                title: const Text('Keluar'),
-                                content: const Text(
-                                  'Yakin mau keluar dari aplikasi?',
-                                ),
-                                actions: [
-                                  TextButton(
-                                    onPressed:
-                                        () => Navigator.of(context).pop(false),
-                                    child: const Text('Batal'),
-                                  ),
-                                  TextButton(
-                                    onPressed:
-                                        () => Navigator.of(context).pop(true),
-                                    child: const Text('Keluar'),
-                                    style: TextButton.styleFrom(
-                                      foregroundColor: Colors.red,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                        );
+      appBar: AppBar(backgroundColor: Colors.white, elevation: 0),
+      body: Column(
+        children: [
+          // Banner Ad di bagian atas
+          const BannerAdWidget(),
 
-                        // Jika user mengkonfirmasi logout
-                        if (confirm == true) {
-                          // Panggil fungsi handleLogout
-                          await handleLogout(context);
-                        }
-                      },
-                      child: SizedBox(
-                        width: 40,
-                        height: 40,
+          // Konten utama
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Header section
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Small image above the header text
+                          GestureDetector(
+                            onTap: () async {
+                              final bool? confirm = await showDialog<bool>(
+                                context: context,
+                                builder:
+                                    (context) => AlertDialog(
+                                      title: const Text('Keluar'),
+                                      content: const Text(
+                                        'Yakin mau keluar dari aplikasi?',
+                                      ),
+                                      actions: [
+                                        TextButton(
+                                          onPressed:
+                                              () => Navigator.of(
+                                                context,
+                                              ).pop(false),
+                                          child: const Text('Batal'),
+                                        ),
+                                        TextButton(
+                                          onPressed:
+                                              () => Navigator.of(
+                                                context,
+                                              ).pop(true),
+                                          child: const Text('Keluar'),
+                                          style: TextButton.styleFrom(
+                                            foregroundColor: Colors.red,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                              );
+
+                              // Jika user mengkonfirmasi logout
+                              if (confirm == true) {
+                                // Panggil fungsi handleLogout
+                                await handleLogout(context);
+                              }
+                            },
+                            child: SizedBox(
+                              width: 40,
+                              height: 40,
+                              child: Image.asset(
+                                'assets/images/exit.png',
+                                fit: BoxFit.contain,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          const Text(
+                            'English',
+                            style: TextStyle(
+                              fontSize: 28,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black,
+                            ),
+                          ),
+                          const Text(
+                            'Learning',
+                            style: TextStyle(
+                              fontSize: 28,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'QUICK VIEW',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                        ],
+                      ),
+                      // Books stack image
+                      SizedBox(
+                        width: 200,
+                        height: 200,
                         child: Image.asset(
-                          'assets/images/exit.png',
+                          'assets/images/book.png',
                           fit: BoxFit.contain,
                         ),
                       ),
-                    ),
-                    const SizedBox(height: 8),
-                    const Text(
-                      'English',
-                      style: TextStyle(
-                        fontSize: 28,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black,
-                      ),
-                    ),
-                    const Text(
-                      'Learning',
-                      style: TextStyle(
-                        fontSize: 28,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'QUICK VIEW',
-                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-                    ),
-                  ],
-                ),
-                // Books stack image
-                SizedBox(
-                  width: 200,
-                  height: 200,
-                  child: Image.asset(
-                    'assets/images/book.png',
-                    fit: BoxFit.contain,
+                    ],
                   ),
-                ),
-              ],
-            ),
 
-            const SizedBox(height: 20),
+                  const SizedBox(height: 20),
 
-            // Grid of menu items
-            Expanded(
-              child: GridView.count(
-                crossAxisCount: 2,
-                childAspectRatio: 1.1,
-                crossAxisSpacing: 12,
-                mainAxisSpacing: 12,
-                children: [
-                  _buildMenuItem(
-                    context,
-                    // 'Hafalan',
-                    const Color(0xFFFFBE4DE)!,
-                    'assets/images/hafalan.png',
-                    // subtitle: "Hafalan",
-                    onTap: () {
-                      print('Hafalan tapped');
-                      // Navigate to Hafalan screen
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => HafalanScreen(),
+                  // Grid of menu items
+                  Expanded(
+                    child: GridView.count(
+                      crossAxisCount: 2,
+                      childAspectRatio: 1.1,
+                      crossAxisSpacing: 12,
+                      mainAxisSpacing: 12,
+                      children: [
+                        _buildMenuItem(
+                          context,
+                          const Color(0xFFFFBE4DE)!,
+                          'assets/images/hafalan.png',
+                          onTap: () {
+                            _handleMenuTap(() {
+                              print('Hafalan tapped');
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => HafalanScreen(),
+                                ),
+                              );
+                            });
+                          },
                         ),
-                      );
-                    },
-                  ),
-                  _buildMenuItem(
-                    context,
-                    // 'Grammar',
-                    const Color(0xFFFEDDED)!,
-                    'assets/images/grammar.png',
-                    // subtitle: "Learning grammar",
-                    onTap: () {
-                      print('Grammar tapped');
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => GrammarScreen(),
+                        _buildMenuItem(
+                          context,
+                          const Color(0xFFFEDDED)!,
+                          'assets/images/grammar.png',
+                          onTap: () {
+                            _handleMenuTap(() {
+                              print('Grammar tapped');
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => GrammarScreen(),
+                                ),
+                              );
+                            });
+                          },
                         ),
-                      );
-                    },
-                  ),
-                  _buildMenuItem(
-                    context,
-                    // 'Tenses',
-                    const Color(0xFFDAD6FB)!,
-                    'assets/images/tenses.png',
-                    // subtitle: "All tenses",
-                    onTap: () {
-                      print('Tenses tapped');
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => TensesScreen()),
-                      );
-                    },
-                  ),
-                  _buildMenuItem(
-                    context,
-                    // 'Kosakata',
-                    const Color(0xFFDBFFD9)!,
-                    'assets/images/kosakata.png',
-                    // subtitle: "Vocabulary",
-                    onTap: () {
-                      print('Kosakata tapped');
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => KosakataScreen(),
+                        _buildMenuItem(
+                          context,
+                          const Color(0xFFDAD6FB)!,
+                          'assets/images/tenses.png',
+                          onTap: () {
+                            _handleMenuTap(() {
+                              print('Tenses tapped');
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => TensesScreen(),
+                                ),
+                              );
+                            });
+                          },
                         ),
-                      );
-                    },
-                  ),
-                  _buildMenuItem(
-                    context,
-                    const Color(0xFFFFFACF)!,
-                    'assets/images/ujian.png',
-                    onTap: () {
-                      print('Ujian tapped');
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => ExamScreen()),
-                      );
-                    },
-                  ),
-                  _buildMenuItem(
-                    context,
-                    // 'Frasa dan Idiom',
-                    const Color(0xFFDEF4FF)!,
-                    'assets/images/frasa.png',
-                    // subtitle: "Phrases and Idioms",
-                    onTap: () {
-                      print('Frasa dan Idiom tapped');
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => FrasaScreen()),
-                      );
-                    },
+                        _buildMenuItem(
+                          context,
+                          const Color(0xFFDBFFD9)!,
+                          'assets/images/kosakata.png',
+                          onTap: () {
+                            _handleMenuTap(() {
+                              print('Kosakata tapped');
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => KosakataScreen(),
+                                ),
+                              );
+                            });
+                          },
+                        ),
+                        _buildMenuItem(
+                          context,
+                          const Color(0xFFFFFACF)!,
+                          'assets/images/ujian.png',
+                          onTap: () {
+                            _handleMenuTap(() {
+                              print('Ujian tapped');
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => ExamScreen(),
+                                ),
+                              );
+                            });
+                          },
+                        ),
+                        _buildMenuItem(
+                          context,
+                          const Color(0xFFDEF4FF)!,
+                          'assets/images/frasa.png',
+                          onTap: () {
+                            _handleMenuTap(() {
+                              print('Frasa dan Idiom tapped');
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => FrasaScreen(),
+                                ),
+                              );
+                            });
+                          },
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),
             ),
-          ],
-        ),
+          ),
+
+          // Banner Ad di bagian bawah
+          const BannerAdWidget(),
+        ],
       ),
     );
   }
 
   Widget _buildMenuItem(
     BuildContext context,
-    // String title,
     Color color,
     String imagePath, {
     String? subtitle,
@@ -346,11 +404,6 @@ class Home extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 8),
-            // Text(
-            //   // title,
-            //   style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-            //   textAlign: TextAlign.center,
-            // ),
             if (subtitle != null)
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 4.0),

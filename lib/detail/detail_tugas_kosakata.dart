@@ -28,13 +28,24 @@ class TugasKosakatas {
 
   factory TugasKosakatas.fromJson(Map<String, dynamic> json) {
     return TugasKosakatas(
-      id: json['id'],
-      kosakataId: json['kosakatas_id'],
-      kkm: json['kkm'],
-      bodyQuestions: json['body_questions'],
-      createdAt: json['created_at'],
-      updatedAt: json['updated_at'],
+      // Menggunakan helper function untuk parsing int yang aman
+      id: _parseToInt(json['id']),
+      kosakataId: _parseToInt(json['kosakatas_id']),
+      kkm: json['kkm']?.toString() ?? '',
+      bodyQuestions: json['body_questions']?.toString() ?? '',
+      createdAt: json['created_at']?.toString() ?? '',
+      updatedAt: json['updated_at']?.toString() ?? '',
     );
+  }
+
+  // Helper function untuk parsing int yang aman
+  static int _parseToInt(dynamic value) {
+    if (value == null) return 0;
+    if (value is int) return value;
+    if (value is String) {
+      return int.tryParse(value) ?? 0;
+    }
+    return 0;
   }
 }
 
@@ -64,6 +75,7 @@ class _TugasKosakatasPageState extends State<TugasKosakatasPage> {
       if (userId == null) {
         throw Exception('User ID tidak ditemukan, harap login ulang');
       }
+
       final response = await http.get(
         Uri.parse(
           'https://speakeasy-english.web.id/api/tugas-kosakatas?user_id=$userId',
@@ -71,24 +83,42 @@ class _TugasKosakatasPageState extends State<TugasKosakatasPage> {
         headers: {'Accept': 'application/json'},
       );
 
+      print('Response status code: ${response.statusCode}'); // Debug log
+      print('Response body: ${response.body}'); // Debug log
+
       if (response.statusCode == 200) {
         final Map<String, dynamic> responseData = json.decode(response.body);
         print('API Response: $responseData'); // Log response
 
-        if (responseData.containsKey('data')) {
+        if (responseData.containsKey('data') && responseData['data'] != null) {
           final List<dynamic> data = responseData['data'];
-          return data.map((json) => TugasKosakatas.fromJson(json)).toList();
+          print('Data count: ${data.length}'); // Debug log
+
+          List<TugasKosakatas> tugasList = [];
+          for (var item in data) {
+            try {
+              print('Processing item: $item'); // Debug log
+              tugasList.add(TugasKosakatas.fromJson(item));
+            } catch (e) {
+              print('Error parsing item: $item, Error: $e'); // Debug log
+              // Skip item yang error, lanjutkan ke item berikutnya
+              continue;
+            }
+          }
+          return tugasList;
         } else {
+          print('No data key found or data is null');
           return [];
         }
       } else {
+        print('HTTP Error: ${response.statusCode}, Body: ${response.body}');
         throw Exception(
-          'Failed to load tugas grammars: ${response.statusCode}',
+          'Failed to load tugas kosakatas: ${response.statusCode}',
         );
       }
     } catch (e) {
       print('API Error: $e');
-      throw Exception('Failed to connect to API: $e');
+      rethrow; // Re-throw untuk menampilkan error di UI
     }
   }
 
@@ -208,10 +238,7 @@ class _TugasKosakatasPageState extends State<TugasKosakatasPage> {
                         Icon(
                           Icons.question_answer,
                           size: 16,
-                          color:
-                              !_isShowingTugas
-                                  ? Colors.grey.shade700
-                                  : Colors.grey.shade700,
+                          color: Colors.grey.shade700,
                         ),
                         const SizedBox(width: 8),
                         const Text('Data Jawaban'),
@@ -252,10 +279,13 @@ class _TugasKosakatasPageState extends State<TugasKosakatasPage> {
               children: [
                 const Icon(Icons.error_outline, size: 60, color: Colors.red),
                 const SizedBox(height: 16),
-                Text(
-                  'Error: ${snapshot.error}',
-                  style: const TextStyle(fontSize: 16),
-                  textAlign: TextAlign.center,
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Text(
+                    'Error: ${snapshot.error}',
+                    style: const TextStyle(fontSize: 16),
+                    textAlign: TextAlign.center,
+                  ),
                 ),
                 const SizedBox(height: 16),
                 ElevatedButton(
@@ -339,7 +369,7 @@ class _TugasKosakatasPageState extends State<TugasKosakatasPage> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    'Tugas Grammar ${tugas.id}',
+                    'Tugas Kosakata ${tugas.id}',
                     style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,

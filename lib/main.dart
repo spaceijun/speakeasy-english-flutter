@@ -1,13 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:speak_english/discover_page.dart';
 import 'package:speak_english/home.dart';
 import 'package:speak_english/login.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  final isValidSession = await checkLoginSession();
 
+  // Inisialisasi Mobile Ads sebelum menjalankan app
+  await MobileAds.instance.initialize();
+
+  final isValidSession = await checkLoginSession();
   runApp(MainApp(isLoggedIn: isValidSession));
 }
 

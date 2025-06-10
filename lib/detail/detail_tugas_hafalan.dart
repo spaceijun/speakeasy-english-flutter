@@ -5,7 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:speak_english/detail/data-jawaban/jawaban_hafalan.dart';
 import 'package:speak_english/detail/form/form_tugas_hafalan.dart';
 
-// Model untuk TugasHafalan
+// Model untuk TugasHafalan - Fixed version
 class TugasHafalan {
   final int id;
   final int hafalanId;
@@ -25,12 +25,21 @@ class TugasHafalan {
 
   factory TugasHafalan.fromJson(Map<String, dynamic> json) {
     return TugasHafalan(
-      id: json['id'],
-      hafalanId: json['hafalan_id'],
-      kkm: json['kkm'],
-      bodyQuestions: json['body_questions'],
-      createdAt: json['created_at'],
-      updatedAt: json['updated_at'],
+      // Safely parse id - handle both String and int
+      id: json['id'] is String ? int.parse(json['id']) : json['id'],
+      // Safely parse hafalan_id - handle both String and int
+      hafalanId:
+          json['hafalan_id'] is String
+              ? int.parse(json['hafalan_id'])
+              : json['hafalan_id'],
+      // Safely handle kkm - ensure it's a String
+      kkm: json['kkm']?.toString() ?? '',
+      // Safely handle body_questions - ensure it's a String
+      bodyQuestions: json['body_questions']?.toString() ?? '',
+      // Safely handle created_at - ensure it's a String
+      createdAt: json['created_at']?.toString() ?? '',
+      // Safely handle updated_at - ensure it's a String
+      updatedAt: json['updated_at']?.toString() ?? '',
     );
   }
 }
@@ -71,13 +80,31 @@ class _TugasHafalanPageState extends State<TugasHafalanPage> {
         headers: {'Accept': 'application/json'},
       );
 
+      print('Response Status Code: ${response.statusCode}');
+      print('Response Body: ${response.body}');
+
       if (response.statusCode == 200) {
         final Map<String, dynamic> responseData = json.decode(response.body);
         print('API Response: $responseData'); // Log response
 
         if (responseData.containsKey('data')) {
           final List<dynamic> data = responseData['data'];
-          return data.map((json) => TugasHafalan.fromJson(json)).toList();
+          print('Data count: ${data.length}');
+
+          // Print first item structure for debugging
+          if (data.isNotEmpty) {
+            print('First item structure: ${data[0]}');
+          }
+
+          return data.map((json) {
+            try {
+              return TugasHafalan.fromJson(json);
+            } catch (e) {
+              print('Error parsing item: $json');
+              print('Parse error: $e');
+              rethrow;
+            }
+          }).toList();
         } else {
           return [];
         }

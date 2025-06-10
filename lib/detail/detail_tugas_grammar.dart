@@ -3,10 +3,9 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:speak_english/detail/data-jawaban/jawaban_grammars.dart';
-import 'package:speak_english/detail/data-jawaban/jawaban_hafalan.dart';
 import 'package:speak_english/detail/form/form_tugas_grammar.dart';
 
-// Model untuk TugasGrammar
+// Model untuk TugasGrammar dengan improved type handling
 class TugasGrammar {
   final int id;
   final int grammarId;
@@ -26,13 +25,31 @@ class TugasGrammar {
 
   factory TugasGrammar.fromJson(Map<String, dynamic> json) {
     return TugasGrammar(
-      id: json['id'],
-      grammarId: json['grammars_id'],
-      kkm: json['kkm'],
-      bodyQuestions: json['body_questions'],
-      createdAt: json['created_at'],
-      updatedAt: json['updated_at'],
+      // Safe parsing for integers - handle both int and string types
+      id: _parseToInt(json['id']),
+      grammarId: _parseToInt(json['grammars_id']),
+      // Safe parsing for strings with null handling
+      kkm: _parseToString(json['kkm']),
+      bodyQuestions: _parseToString(json['body_questions']),
+      createdAt: _parseToString(json['created_at']),
+      updatedAt: _parseToString(json['updated_at']),
     );
+  }
+
+  // Helper method to safely parse integer values
+  static int _parseToInt(dynamic value) {
+    if (value == null) return 0;
+    if (value is int) return value;
+    if (value is String) {
+      return int.tryParse(value) ?? 0;
+    }
+    return 0;
+  }
+
+  // Helper method to safely parse string values
+  static String _parseToString(dynamic value) {
+    if (value == null) return '';
+    return value.toString();
   }
 }
 
@@ -58,7 +75,7 @@ class _TugasGrammarPageState extends State<TugasGrammarPage> {
       // Mendapatkan user_id dari SharedPreferences
       final prefs = await SharedPreferences.getInstance();
       final userId = prefs.getInt('user_id');
-      print('User ID yang sedang login: $userId'); // Log user ID
+      print('User ID yang sedang login: $userId');
 
       if (userId == null) {
         throw Exception('User ID tidak ditemukan, harap login ulang');
@@ -69,27 +86,72 @@ class _TugasGrammarPageState extends State<TugasGrammarPage> {
         Uri.parse(
           'https://speakeasy-english.web.id/api/tugas-grammars?user_id=$userId',
         ),
-        headers: {'Accept': 'application/json'},
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+        },
       );
 
-      if (response.statusCode == 200) {
-        final Map<String, dynamic> responseData = json.decode(response.body);
-        print('API Response: $responseData'); // Log response
+      print('Response Status Code: ${response.statusCode}');
+      print('Response Body: ${response.body}');
 
-        if (responseData.containsKey('data')) {
-          final List<dynamic> data = responseData['data'];
-          return data.map((json) => TugasGrammar.fromJson(json)).toList();
-        } else {
-          return [];
+      if (response.statusCode == 200) {
+        final dynamic responseData = json.decode(response.body);
+        print('Parsed Response: $responseData');
+
+        // Handle different response structures
+        List<dynamic> dataList = [];
+
+        if (responseData is Map<String, dynamic>) {
+          if (responseData.containsKey('data')) {
+            dataList = responseData['data'] as List<dynamic>? ?? [];
+          } else if (responseData.containsKey('tugas_grammars')) {
+            dataList = responseData['tugas_grammars'] as List<dynamic>? ?? [];
+          } else {
+            // If the response structure is unexpected, try to use the response as is
+            print('Unexpected response structure: $responseData');
+            return [];
+          }
+        } else if (responseData is List<dynamic>) {
+          dataList = responseData;
         }
+
+        print('Data List Length: ${dataList.length}');
+
+        // Parse each item with error handling
+        List<TugasGrammar> tugasList = [];
+        for (int i = 0; i < dataList.length; i++) {
+          try {
+            final item = dataList[i];
+            print('Processing item $i: $item');
+
+            if (item is Map<String, dynamic>) {
+              tugasList.add(TugasGrammar.fromJson(item));
+            } else {
+              print('Item $i is not a Map: ${item.runtimeType}');
+            }
+          } catch (e) {
+            print('Error parsing item $i: $e');
+            // Continue with next item instead of failing completely
+          }
+        }
+
+        return tugasList;
       } else {
         throw Exception(
-          'Failed to load tugas grammars: ${response.statusCode}',
+          'Failed to load tugas grammars: ${response.statusCode}\nResponse: ${response.body}',
         );
       }
     } catch (e) {
       print('API Error: $e');
-      throw Exception('Failed to connect to API: $e');
+      // Provide more specific error information
+      if (e is FormatException) {
+        throw Exception('Invalid JSON response from server');
+      } else if (e.toString().contains('SocketException')) {
+        throw Exception('No internet connection');
+      } else {
+        throw Exception('Failed to connect to API: $e');
+      }
     }
   }
 
@@ -209,10 +271,7 @@ class _TugasGrammarPageState extends State<TugasGrammarPage> {
                         Icon(
                           Icons.question_answer,
                           size: 16,
-                          color:
-                              !_isShowingTugas
-                                  ? Colors.grey.shade700
-                                  : Colors.grey.shade700,
+                          color: Colors.grey.shade700,
                         ),
                         const SizedBox(width: 8),
                         const Text('Data Jawaban'),
@@ -253,10 +312,13 @@ class _TugasGrammarPageState extends State<TugasGrammarPage> {
               children: [
                 const Icon(Icons.error_outline, size: 60, color: Colors.red),
                 const SizedBox(height: 16),
-                Text(
-                  'Error: ${snapshot.error}',
-                  style: const TextStyle(fontSize: 16),
-                  textAlign: TextAlign.center,
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Text(
+                    'Error: ${snapshot.error}',
+                    style: const TextStyle(fontSize: 16),
+                    textAlign: TextAlign.center,
+                  ),
                 ),
                 const SizedBox(height: 16),
                 ElevatedButton(
@@ -354,8 +416,6 @@ class _TugasGrammarPageState extends State<TugasGrammarPage> {
               ),
               const Divider(),
               const SizedBox(height: 8),
-              // Tanggal dan KKM
-              const SizedBox(height: 8),
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
@@ -390,7 +450,6 @@ class _TugasGrammarPageState extends State<TugasGrammarPage> {
                 ),
               ),
               const SizedBox(height: 16),
-              // Pertanyaan
               const Text(
                 'Pertanyaan:',
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
@@ -411,7 +470,6 @@ class _TugasGrammarPageState extends State<TugasGrammarPage> {
                 ),
               ),
               const SizedBox(height: 20),
-              // Tombol aksi
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -430,9 +488,8 @@ class _TugasGrammarPageState extends State<TugasGrammarPage> {
                       ),
                     ),
                     onPressed: () async {
-                      Navigator.pop(context); // Tutup modal
+                      Navigator.pop(context);
 
-                      // Navigasi ke halaman jawab tugas
                       final result = await Navigator.push(
                         context,
                         MaterialPageRoute(
@@ -441,11 +498,12 @@ class _TugasGrammarPageState extends State<TugasGrammarPage> {
                                 tugasGrammarId: tugas.id,
                                 pertanyaan: tugas.bodyQuestions,
                                 kkm: tugas.kkm,
+                                TugasGrammarId:
+                                    tugas.id, // Added missing parameter
                               ),
                         ),
                       );
 
-                      // Jika hasil true, refresh data
                       if (result == true) {
                         setState(() {
                           _TugasGrammarsFuture = _fetchTugasGrammars();
@@ -462,12 +520,8 @@ class _TugasGrammarPageState extends State<TugasGrammarPage> {
     );
   }
 
-  // Widget untuk menampilkan HTML content
   Widget _buildHtmlContent(String htmlContent) {
-    // Dalam implementasi asli Anda perlu menggunakan package flutter_html
-    // untuk render HTML dengan benar
     return Text(
-      // Menghapus tag HTML sederhana
       htmlContent.replaceAll(RegExp(r'<[^>]*>'), ''),
       style: const TextStyle(fontSize: 14),
     );
@@ -527,7 +581,6 @@ class TugasGrammarTile extends StatelessWidget {
         color: Colors.white,
         child: Row(
           children: [
-            // Icon dengan background berwarna
             Container(
               width: 36,
               height: 36,
@@ -543,7 +596,6 @@ class TugasGrammarTile extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 16),
-            // Detail tugas
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -570,7 +622,6 @@ class TugasGrammarTile extends StatelessWidget {
                 ],
               ),
             ),
-            // Arrow icon
             const SizedBox(width: 8),
             const Icon(Icons.chevron_right, color: Colors.grey),
           ],
